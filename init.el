@@ -9,6 +9,8 @@
   :config
   (load-file (expand-file-name "early-init.el" user-emacs-directory)))
 
+(load-file (expand-file-name "tree-surgeon-split-join.el" user-emacs-directory))
+
 (use-package straight)
 
 (use-package expand-region
@@ -56,7 +58,7 @@
    mode-line-percent-position nil
    enable-recursive-minibuffers t
    confirm-kill-emacs 'y-or-n-p)
-  (set-face-attribute 'default nil :font "Dank Mono" :height 140 :weight 'regular)
+  (set-face-attribute 'default nil :font "Berkeley Mono" :height 140 :weight 'regular)
   (when (eq system-type 'darwin)
   (setq mac-command-modifier 'meta
         mac-option-modifier nil
