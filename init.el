@@ -68,9 +68,21 @@
                                   (scroll-left 4)))
   (global-set-key [wheel-left] (lambda ()
                                  (interactive)
-                                 (scroll-right 4)))))
+                                 (scroll-right 4))))
+  (defun kos/keyboard-quit ()
+    "Quit out of whatever."
+    (interactive)
+    ;; Delete frame if it is a minbuffer only popup
+    (if (and (equal (cdr (assq 'name (frame-parameters))) "emacs-popup")
+             (equal (cdr (assq 'minibuffer (frame-parameters))) 'only))
+        (delete-frame))
+    (keyboard-escape-quit)
+    (keyboard-quit)))
 
 
+(setq window-divider-default-right-width 8)
+(setq window-divider-default-places 'right-only)
+(window-divider-mode 1)
 (global-subword-mode 1)
 
 (set-default-coding-systems 'utf-8)
@@ -87,7 +99,7 @@
 
 ;; (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 (global-set-key (kbd "M-o") 'other-window)
-(global-set-key (kbd "C-c f") #'deadgrep)
+
 
 (use-package display-line-numbers
   :straight t
@@ -270,7 +282,9 @@
   :straight t)
 
 (use-package deadgrep
-  :straight t)
+  :straight t
+  :config
+  (global-set-key (kbd "C-c f") #'deadgrep))
 
 (use-package symbol-overlay
   :straight t
@@ -507,6 +521,7 @@
   :config
   (add-hook 'ruby-mode-hook #'tree-sitter-mode)
   (add-hook 'js2-mode-hook #'tree-sitter-mode)
+  (add-hook 'js-mode-hook #'tree-sitter-mode)
   (global-tree-sitter-mode))
 
 (use-package tree-sitter-langs
@@ -553,10 +568,27 @@
 (use-package sly
   :straight t)
 
+(use-package css-mode
+  :straight t)
+
+(use-package scss-mode
+  :straight t)
+
+(use-package typescript-mode
+  :straight t)
+
 (use-package coffee-mode
   :straight t
   :config
-  (setq coffee-indent-like-python-mode t))
+  (setq coffee-indent-like-python-mode t
+        coffee-tab-width 2))
+
+(use-package emmet-mode
+  :straight t
+  :hook (web-mode . emmet-mode)
+  :config
+  (add-to-list 'emmet-jsx-major-modes 'js2-mode))
+
 
 (use-package ruby-mode
   :straight t
@@ -564,8 +596,44 @@
   ((("C-c C-c" . ruby-send-region)))
   :config
   (add-hook 'ruby-mode-hook #'subword-mode)
+  (add-hook 'ruby-mode-hook
+            (lambda ()
+              (setq imenu-generic-expression
+                    '(("Routes" "^\\s-+\\(get\\|post\\|put\\|patch\\|delete\\)\\s-+['\"]\\([^'\"]+\\)['\"]"
+                       2)
+                      ("Resources" "^\\s-+resources\\s-+\\([^[:space:]]+\\)"
+                       1)
+                      ("Tables" "^\\s*create_table\\s+\"\\(\\w+\\)"
+                       1)
+                      ("Columns" "^\\s-*t\\.[a-z]+\\s-*['\"]\\([^'\"]+\\)['\"]"
+                       1)
+                      ("Indexes" "^\\s-*add_index\\s-*['\"]\\([^'\"]+\\)['\"]"
+                       1)))))
+
   (setq ruby-insert-encoding-magic-comment nil
-        ruby-indent-level 2))
+        ruby-indent-level 2)
+  (defun kill-ruby-instances ()
+    (interactive)
+    (async-shell-command "killall -9 rails ruby spring bundle; echo 'Ruby Instances Killed!'" "*Ruby Kill Output*") ))
+
+(use-package align
+  :straight t
+  :config
+  (add-to-list 'align-rules-list
+                 '(ruby-hash-values-colon
+                   (regexp . ":\\(\\s-*\\)")
+                   (group . 1)
+                   (modes . '(ruby-mode))))
+  (add-to-list 'align-rules-list
+                 '(ruby-hash-values
+                   (regexp . "=>\\(\\s-*\\)")
+                   (group . 1)
+                   (modes . '(ruby-mode))))
+  (add-to-list 'align-rules-list
+                 '(ruby-hash-values
+                   (regexp . ".to\\(\\s-*\\)")
+                   (group . 1)
+                   (modes . '(ruby-mode)))))
 
 ;; (use-package robe
 ;;   :straight t
@@ -590,9 +658,25 @@
   :config
   (add-hook 'after-init-hook 'inf-ruby-switch-setup)
   (setq compilation-scroll-output t
-        rspec-use-docker-when-possible t
+        rspec-use-docker-when-possible nil
         rspec-docker-command "docker-compose run --rm"
-        rspec-docker-container "bucket"))
+        rspec-docker-container "bucket")
+  (defun rpsec-feature-verify-single ()
+    (interactive)
+    (let ((original-feature (getenv "FEATURE")))
+      (setenv "FEATURE" "true")
+      (unwind-protect
+          (rspec-verify-single)
+        (setenv "FEATURE" original-feature))))
+
+  (defun rpsec-feature-verify-file ()
+    (interactive)
+    (let ((original-feature (getenv "FEATURE")))
+      (setenv "FEATURE" "true")
+      (unwind-protect
+          (rspec-verify)
+        (setenv "FEATURE" original-feature))))
+  )
 
 (use-package chatgpt-shell
   :straight (:host github
@@ -629,7 +713,6 @@
   (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.vue\\'" . web-mode))
-  (add-to-list 'auto-mode-alist '("\\.css?\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.hbs\\'" . web-mode)))
 
 (use-package dumb-jump
@@ -651,13 +734,13 @@
   :straight t)
 
 (defun load-frameg ()
-  "Loads ~/.emacs.frameg which should load the previous frame's geometry."
+  "Load ~/.emacs.frameg which should load the previous frame's geometry."
   (let ((frameg-file (expand-file-name "~/.emacs.frameg")))
     (when (file-readable-p frameg-file)
       (load-file frameg-file))))
 
 (defun save-frameg ()
-  "Gets the current frame's geometry and saves to ~/.emacs.frameg."
+  "Get the current frame's geometry and save to ~/.emacs.frameg."
   (let ((frameg-font (frame-parameter (selected-frame) 'font))
         (frameg-left (frame-parameter (selected-frame) 'left))
         (frameg-top (frame-parameter (selected-frame) 'top))
@@ -685,16 +768,12 @@
   "Dont display errors in ruby console."
   (setenv "RUBYOPT" "-W0"))
 
-
 (if window-system
     (progn
       (add-hook 'after-init-hook 'set-ruby-no-opt)
       (add-hook 'after-init-hook 'load-frameg)
       (add-hook 'kill-emacs-hook 'save-frameg)))
 
-(defun kill-ruby-instances ()
-  (interactive)
-  (async-shell-command "killall -9 rails ruby spring bundle; echo 'Ruby Instances Killed!'" "*Ruby Kill Output*") )
 
 (defun split-and-follow-horizontally ()
 	"Split and follow horizontally."
@@ -710,18 +789,6 @@
 	(balance-windows)
 	(other-window 1))
 
-(defun rpsec-feature-verify-single ()
-  (interactive)
-  (setenv "FEATURE" "true")
-  (rspec-verify-single)
-  (setenv "FEATURE" "false"))
-
-(defun rpsec-feature-verify-file ()
-  (interactive)
-  (setenv "FEATURE" "true")
-  (rspec-verify)
-  (setenv "FEATURE" "false"))
-
 (defun current-location ()
   "Show the current location and put it into the kill ring.
 Use the filename relative to the current VC root directory."
@@ -732,16 +799,7 @@ Use the filename relative to the current VC root directory."
     (kill-new location)
     (message location)))
 
-(defun kos/keyboard-quit ()
-  "Quit out of whatever."
-  (interactive)
-  ;; Delete frame if it is a minbuffer only popup
-  (if (and (equal (cdr (assq 'name (frame-parameters))) "emacs-popup")
-           (equal (cdr (assq 'minibuffer (frame-parameters))) 'only))
-      (delete-frame))
-  (keyboard-escape-quit)
-  (minibuffer-keyboard-quit)
-  (keyboard-quit))
+
 (global-set-key [escape] 'kos/keyboard-quit)
 
 (global-set-key (kbd "C-x 2") 'split-and-follow-horizontally)
