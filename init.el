@@ -329,6 +329,9 @@
   :custom
   (csv-align-max-width 80))
 
+(use-package puni
+  :straight t)
+
 
 (use-package evil
   :straight t
