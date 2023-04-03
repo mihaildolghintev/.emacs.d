@@ -80,6 +80,8 @@
     (keyboard-quit)))
 
 
+(define-derived-mode genehack-vue-mode web-mode "ghVue"
+  "A major mode derived from web-mode, for editing .vue files with LSP support.")
 (setq window-divider-default-right-width 8)
 (setq window-divider-default-places 'right-only)
 (window-divider-mode 1)
@@ -515,9 +517,15 @@
   :init   (add-hook 'js2-mode-hook 'js2-refactor-mode)
   :config (js2r-add-keybindings-with-prefix "C-c ."))
 
+;; yarn global add vls
 (use-package eglot
   :config
+  ;; (add-hook 'genehack-vue-mode-hook #'eglot-ensure)
+  (add-to-list 'eglot-server-programs '(genehack-vue-mode "vls"))
   (setq eldoc-echo-area-use-multiline-p nil))
+
+(use-package format-all
+  :straight t)
 
 (use-package tree-sitter
   :straight t
@@ -569,6 +577,9 @@
               (evil-textobj-tree-sitter-get-textobj ("conditional.outer" "loop.outer"))))
 
 (use-package sly
+  :straight t)
+
+(use-package vue-mode
   :straight t)
 
 (use-package css-mode
@@ -638,16 +649,21 @@
                    (group . 1)
                    (modes . '(ruby-mode)))))
 
-;; (use-package robe
-;;   :straight t
-;;   :hook (ruby-mode . robe-mode))
+(use-package robe
+  :straight t
+  :hook
+  (ruby-mode . robe-mode)
+  (ruby-ts-mode . robe-mode)
+  :config
+  )
 
 (use-package inf-ruby
   :straight t
   :config
   (add-hook 'compilation-filter-hook 'inf-ruby-auto-enter)
   (add-hook 'ruby-mode-hook 'inf-ruby-minor-mode)
-  )
+  (eval-after-load 'company
+  '(push 'company-robe company-backends)))
 
 
 (use-package rubocop
@@ -715,7 +731,7 @@
    web-mode-enable-auto-expanding t)
   (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
-  (add-to-list 'auto-mode-alist '("\\.vue\\'" . web-mode))
+  (add-to-list 'auto-mode-alist '("\\.vue\\'" . genehack-vue-mode))
   (add-to-list 'auto-mode-alist '("\\.hbs\\'" . web-mode)))
 
 (use-package dumb-jump
@@ -801,7 +817,6 @@ Use the filename relative to the current VC root directory."
 	       (location (format "%s:%s" file-name line-number)))
     (kill-new location)
     (message location)))
-
 
 (global-set-key [escape] 'kos/keyboard-quit)
 
