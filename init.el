@@ -13,6 +13,15 @@
 
 (use-package straight)
 
+(use-package org
+  :straight t
+  :config
+  (org-babel-do-load-languages
+   'org-babel-load-languages
+   '((plantuml . t)))
+  (setq org-plantuml-jar-path "~/.emacs.d/plantuml.jar")
+  )
+
 (use-package expand-region
   :straight t
   :bind ("C-=" . er/expand-region)
@@ -50,6 +59,9 @@
    hscroll-margin 1
    scroll-margin 0
    scroll-preserve-screen-position nil
+   js-indent-level 2
+   js-jsx-indent-level 2
+   standard-indent 2
    frame-resize-pixelwise window-system
    window-resize-pixelwise window-system)
   (setq
@@ -80,8 +92,6 @@
     (keyboard-quit)))
 
 
-(define-derived-mode genehack-vue-mode web-mode "ghVue"
-  "A major mode derived from web-mode, for editing .vue files with LSP support.")
 (setq window-divider-default-right-width 8)
 (setq window-divider-default-places 'right-only)
 (window-divider-mode 1)
@@ -426,6 +436,10 @@
   :config
   (exec-path-from-shell-initialize))
 
+(use-package wsd-mode
+  :straight t)
+
+
 (use-package magit
   :straight t
   :custom
@@ -498,8 +512,10 @@
   (setq js2-use-font-lock-faces t
         js2-mode-must-byte-compile nil
         javascript-indent-level 2
-        js-indent-level 2
+        js2-basic-offset 0
         css-indent-offset 2
+        typescript-indent-level 2
+        tab-width 2
         js2-strict-trailing-comma-warning nil ; it's encouraged to use trailing comma in ES6
         js2-idle-timer-delay 0.5 ; NOT too big for real time syntax check
         js2-auto-indent-p nil
@@ -517,12 +533,40 @@
   :init   (add-hook 'js2-mode-hook 'js2-refactor-mode)
   :config (js2r-add-keybindings-with-prefix "C-c ."))
 
-;; yarn global add vls
-(use-package eglot
-  :config
-  ;; (add-hook 'genehack-vue-mode-hook #'eglot-ensure)
-  (add-to-list 'eglot-server-programs '(genehack-vue-mode "vls"))
-  (setq eldoc-echo-area-use-multiline-p nil))
+(use-package lsp-mode
+  :straight t
+  :hook ((lsp-mode . lsp-diagnostics-mode)
+         (lsp-mode . lsp-completion-mode)
+         (vue-mode . lsp)
+         (js2-mode . lsp)
+         (js-mode . lsp)
+         (web-mode . lsp))
+  :custom
+  (lsp-keymap-prefix "C-c l")
+  (lsp-completion-provider :none)
+  (lsp-session-file (expand-file-name ".lsp-session" user-emacs-directory))
+  (lsp-log-io nil)
+  (lsp-keep-workspace-alive nil)
+  (lsp-idle-delay 0.5)
+  ;; completion
+  (lsp-completion-enable t)
+  (lsp-completion-enable-additional-text-edit nil)
+  (lsp-enable-snippet nil)
+  (lsp-completion-show-kind nil)
+  ;; headerline
+  (lsp-headerline-breadcrumb-enable nil)
+  (lsp-headerline-breadcrumb-enable-diagnostics nil)
+  (lsp-headerline-breadcrumb-enable-symbol-numbers nil)
+  (lsp-headerline-breadcrumb-icons-enable nil)
+  ;; modeline
+  (lsp-modeline-code-actions-enable nil)
+  (lsp-modeline-diagnostics-enable nil)
+  (lsp-modeline-workspace-status-enable nil)
+  (lsp-signature-doc-lines 1)
+  ;; lens
+  (lsp-lens-enable nil)
+  ;; semantic
+  (lsp-semantic-tokens-enable nil))
 
 (use-package format-all
   :straight t)
@@ -537,6 +581,10 @@
 
 (use-package tree-sitter-langs
   :straight t)
+
+(use-package vue-mode
+  :straight t)
+
 
 (use-package elixir-mode
   :straight t)
@@ -577,9 +625,6 @@
               (evil-textobj-tree-sitter-get-textobj ("conditional.outer" "loop.outer"))))
 
 (use-package sly
-  :straight t)
-
-(use-package vue-mode
   :straight t)
 
 (use-package css-mode
@@ -731,7 +776,7 @@
    web-mode-enable-auto-expanding t)
   (add-to-list 'auto-mode-alist '("\\.html?\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.erb\\'" . web-mode))
-  (add-to-list 'auto-mode-alist '("\\.vue\\'" . genehack-vue-mode))
+  (add-to-list 'auto-mode-alist '("\\.vue\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.hbs\\'" . web-mode)))
 
 (use-package dumb-jump
@@ -751,6 +796,10 @@
 
 (use-package dockerfile-mode
   :straight t)
+
+(use-package plantuml-mode
+  :straight t)
+
 
 (defun load-frameg ()
   "Load ~/.emacs.frameg which should load the previous frame's geometry."
