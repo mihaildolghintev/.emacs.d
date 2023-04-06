@@ -512,61 +512,29 @@
   (setq js2-use-font-lock-faces t
         js2-mode-must-byte-compile nil
         javascript-indent-level 2
-        js2-basic-offset 0
-        css-indent-offset 2
+        js2-basic-offset 2
         typescript-indent-level 2
         tab-width 2
-        js2-strict-trailing-comma-warning nil ; it's encouraged to use trailing comma in ES6
-        js2-idle-timer-delay 0.5 ; NOT too big for real time syntax check
-        js2-auto-indent-p nil
-        js2-indent-on-enter-key nil ; annoying instead useful
+        js2-strict-trailing-comma-warning nil
+        js2-idle-timer-delay 0.5
         js2-skip-preprocessor-directives t
         js2-strict-inconsistent-return-warning nil ; return <=> return null
         js2-enter-indents-newline nil
         js2-bounce-indent-p t
         js2-strict-missing-semi-warning nil
         js2-global-externs (list "window" "module" "require" "buster" "sinon" "assert" "refute" "setTimeout" "clearTimeout" "setInterval" "clearInterval" "location" "__dirname" "console" "JSON" "jQuery" "$"))
-  (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode)))
+  (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
+  (add-hook 'js2-mode-hook #'js2-imenu-extras-mode))
 
 (use-package js2-refactor
   :straight t
   :init   (add-hook 'js2-mode-hook 'js2-refactor-mode)
   :config (js2r-add-keybindings-with-prefix "C-c ."))
 
-(use-package lsp-mode
+(use-package xref-js2
   :straight t
-  :hook ((lsp-mode . lsp-diagnostics-mode)
-         (lsp-mode . lsp-completion-mode)
-         (vue-mode . lsp)
-         (js2-mode . lsp)
-         (js-mode . lsp)
-         (web-mode . lsp))
-  :custom
-  (lsp-keymap-prefix "C-c l")
-  (lsp-completion-provider :none)
-  (lsp-session-file (expand-file-name ".lsp-session" user-emacs-directory))
-  (lsp-log-io nil)
-  (lsp-keep-workspace-alive nil)
-  (lsp-idle-delay 0.5)
-  ;; completion
-  (lsp-completion-enable t)
-  (lsp-completion-enable-additional-text-edit nil)
-  (lsp-enable-snippet nil)
-  (lsp-completion-show-kind nil)
-  ;; headerline
-  (lsp-headerline-breadcrumb-enable nil)
-  (lsp-headerline-breadcrumb-enable-diagnostics nil)
-  (lsp-headerline-breadcrumb-enable-symbol-numbers nil)
-  (lsp-headerline-breadcrumb-icons-enable nil)
-  ;; modeline
-  (lsp-modeline-code-actions-enable nil)
-  (lsp-modeline-diagnostics-enable nil)
-  (lsp-modeline-workspace-status-enable nil)
-  (lsp-signature-doc-lines 1)
-  ;; lens
-  (lsp-lens-enable nil)
-  ;; semantic
-  (lsp-semantic-tokens-enable nil))
+  :config
+  (add-hook 'xref-backend-functions #'xref-js2-xref-backend nil t))
 
 (use-package format-all
   :straight t)
@@ -576,6 +544,7 @@
   :config
   (add-hook 'ruby-mode-hook #'tree-sitter-mode)
   (add-hook 'js2-mode-hook #'tree-sitter-mode)
+  (add-hook 'js2-jsx-mode-hook #'tree-sitter-mode)
   (add-hook 'js-mode-hook #'tree-sitter-mode)
   (global-tree-sitter-mode))
 
@@ -757,7 +726,6 @@
                              (haml-mode)
                              (flycheck-mode -1)
                              (setq evil-shift-width 2))))
-
 
 (use-package web-mode
   :demand t
