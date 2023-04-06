@@ -497,12 +497,23 @@
 (use-package crux
   :straight t)
 
+(use-package which-key
+  :straight t
+  :config
+  (which-key-mode)
+  (setq which-key-max-display-columns 2
+        which-key-add-column-padding 10
+        which-key-max-description-length 120))
+
 (use-package flycheck
   :straight t
   :init (global-flycheck-mode)
   :config
   (setq-default flycheck-disabled-checkers '(ruby-reek))
   (setq flycheck-check-syntax-automatically '(save mode-enabled)))
+
+(use-package prettier
+  :straight t)
 
 (use-package js2-mode
   :straight t
@@ -546,10 +557,17 @@
   (add-hook 'js2-mode-hook #'tree-sitter-mode)
   (add-hook 'js2-jsx-mode-hook #'tree-sitter-mode)
   (add-hook 'js-mode-hook #'tree-sitter-mode)
+  (add-hook 'emacs-lisp-mode-hook #'tree-sitter-mode)
   (global-tree-sitter-mode))
 
 (use-package tree-sitter-langs
   :straight t)
+
+(use-package ts-fold
+  :straight (ts-fold :type git :host github :repo "emacs-tree-sitter/ts-fold")
+  :config
+  (global-ts-fold-mode)
+  (global-set-key (kbd "C-c t") 'ts-fold-toggle))
 
 (use-package vue-mode
   :straight t)
