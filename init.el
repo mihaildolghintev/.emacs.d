@@ -47,7 +47,7 @@
    bidi-paragraph-direction 'left-to-right
    cursor-in-non-selected-windows nil
    auto-revert-check-vc-info t
-   auto-revert-verbose t
+   auto-revert-verbose nil
    frame-title-format "Emacs"
    auto-window-vscroll nil
    indent-tabs-mode nil
@@ -67,7 +67,6 @@
   (setq
    ring-bell-function 'ignore
    dired-listing-switches "-alh"
-   mode-line-percent-position nil
    enable-recursive-minibuffers t
    confirm-kill-emacs 'y-or-n-p)
   (set-face-attribute 'default nil :font "Berkeley Mono" :height 140 :weight 'regular)
@@ -344,7 +343,6 @@
 (use-package puni
   :straight t)
 
-
 (use-package evil
   :straight t
   :init
@@ -443,7 +441,6 @@
 (use-package magit
   :straight t
   :custom
-  (magit-ediff-dwim-show-on-hunks t)
   (magit-diff-refine-ignore-whitespace t)
   (magit-diff-refine-hunk 'all)
   :config
@@ -642,20 +639,6 @@
   ((("C-c C-c" . ruby-send-region)))
   :config
   (add-hook 'ruby-mode-hook #'subword-mode)
-  (add-hook 'ruby-mode-hook
-            (lambda ()
-              (setq imenu-generic-expression
-                    '(("Routes" "^\\s-+\\(get\\|post\\|put\\|patch\\|delete\\)\\s-+['\"]\\([^'\"]+\\)['\"]"
-                       2)
-                      ("Resources" "^\\s-+resources\\s-+\\([^[:space:]]+\\)"
-                       1)
-                      ("Tables" "^\\s*create_table\\s+\"\\(\\w+\\)"
-                       1)
-                      ("Columns" "^\\s-*t\\.[a-z]+\\s-*['\"]\\([^'\"]+\\)['\"]"
-                       1)
-                      ("Indexes" "^\\s-*add_index\\s-*['\"]\\([^'\"]+\\)['\"]"
-                       1)))))
-
   (setq ruby-insert-encoding-magic-comment nil
         ruby-indent-level 2)
   (defun kill-ruby-instances ()
@@ -685,9 +668,7 @@
   :straight t
   :hook
   (ruby-mode . robe-mode)
-  (ruby-ts-mode . robe-mode)
-  :config
-  )
+  (ruby-ts-mode . robe-mode))
 
 (use-package inf-ruby
   :straight t
@@ -696,7 +677,6 @@
   (add-hook 'ruby-mode-hook 'inf-ruby-minor-mode)
   (eval-after-load 'company
   '(push 'company-robe company-backends)))
-
 
 (use-package rubocop
   :straight t)
@@ -708,11 +688,10 @@
   :straight t
   :config
   (add-hook 'after-init-hook 'inf-ruby-switch-setup)
-  (setq compilation-scroll-output t
-        rspec-use-docker-when-possible nil
-        rspec-docker-command "docker-compose run --rm"
-        rspec-docker-container "bucket")
-  (defun rpsec-feature-verify-single ()
+  (define-key rspec-mode-map (kbd "C-c . v") 'rspec-feature-verify-file)
+  (define-key rspec-mode-map (kbd "C-c . s") 'rspec-feature-verify-single)
+  (setq compilation-scroll-output t)
+  (defun rspec-feature-verify-single ()
     (interactive)
     (let ((original-feature (getenv "FEATURE")))
       (setenv "FEATURE" "true")
@@ -720,14 +699,13 @@
           (rspec-verify-single)
         (setenv "FEATURE" original-feature))))
 
-  (defun rpsec-feature-verify-file ()
+  (defun rspec-feature-verify-file ()
     (interactive)
     (let ((original-feature (getenv "FEATURE")))
       (setenv "FEATURE" "true")
       (unwind-protect
           (rspec-verify)
-        (setenv "FEATURE" original-feature))))
-  )
+        (setenv "FEATURE" original-feature)))))
 
 (use-package chatgpt-shell
   :straight (:host github
