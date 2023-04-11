@@ -559,8 +559,7 @@
 (use-package dired-sidebar
   :straight t
   :config
-  (setq dired-sidebar-width 60
-        dired-sidebar-should-follow-file t))
+  (setq dired-sidebar-width 60))
 
 (use-package lin
   :straight t
