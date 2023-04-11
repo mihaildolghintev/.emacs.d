@@ -69,7 +69,7 @@
    dired-listing-switches "-alh"
    enable-recursive-minibuffers t
    confirm-kill-emacs 'y-or-n-p)
-  (set-face-attribute 'default nil :font "Berkeley Mono" :height 140 :weight 'regular)
+  (set-face-attribute 'default nil :font "Fira Code" :height 130 :weight 'regular)
   (when (eq system-type 'darwin)
   (setq mac-command-modifier 'meta
         mac-option-modifier nil
@@ -111,6 +111,23 @@
 ;; (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 (global-set-key (kbd "M-o") 'other-window)
 
+(use-package ligature
+  :straight t
+  :config
+  (ligature-set-ligatures 'prog-mode '("|||>" "<|||" "<==>" "<!--" "####" "~~>" "***" "||=" "||>"
+                                       ":::" "::=" "=:=" "===" "==>" "=!=" "=>>" "=<<" "=/=" "!=="
+                                       "!!." ">=>" ">>=" ">>>" ">>-" ">->" "->>" "-->" "---" "-<<"
+                                       "<~~" "<~>" "<*>" "<||" "<|>" "<$>" "<==" "<=>" "<=<" "<->"
+                                       "<--" "<-<" "<<=" "<<-" "<<<" "<+>" "</>" "###" "#_(" "..<"
+                                       "..." "+++" "/==" "///" "_|_" "www" "&&" "^=" "~~" "~@" "~="
+                                       "~>" "~-" "**" "*>" "*/" "||" "|}" "|]" "|=" "|>" "|-" "{|"
+                                       "[|" "]#" "::" ":=" ":>" ":<" "$>" "==" "=>" "!=" "!!" ">:"
+                                       ">=" ">>" ">-" "-~" "-|" "->" "--" "-<" "<~" "<*" "<|" "<:"
+                                       "<$" "<=" "<>" "<-" "<<" "<+" "</" "#{" "#[" "#:" "#=" "#!"
+                                       "##" "#(" "#?" "#_" "%%" ".=" ".-" ".." ".?" "+>" "++" "?:"
+                                       "?=" "?." "??" ";;" "/*" "/=" "/>" "//" "__" "~~" "(*" "*)"
+                                       "\\\\" "://"))
+  (global-ligature-mode t))
 
 (use-package display-line-numbers
   :straight t
