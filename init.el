@@ -465,8 +465,14 @@
 
 (use-package eros
   :straight t
-  :hook
-  (emacs-lisp-mode . eros-mode))
+  :bind
+  (:map sly-mode-map
+        ("C-c C-c" . sly-eval-defun)
+        ("C-c C-r" . sly-eval-region)
+        ("C-c C-b" . sly-eval-buffer))
+  :config
+  (eros-mode 1)
+  )
 
 (use-package rg
   :straight t)
@@ -484,6 +490,7 @@
 
 (use-package helpful
   :straight t
+  :defer t
   :config
   (global-set-key (kbd "C-h f") #'helpful-callable)
 
@@ -492,7 +499,8 @@
   (global-set-key (kbd "C-c C-d") #'helpful-at-point))
 
 (use-package crux
-  :straight t)
+  :straight t
+  :defer t)
 
 (use-package which-key
   :straight t
@@ -510,7 +518,8 @@
   (setq flycheck-check-syntax-automatically '(save mode-enabled)))
 
 (use-package prettier
-  :straight t)
+  :straight t
+  :defer t)
 
 (use-package js2-mode
   :straight t
@@ -547,6 +556,17 @@
 (use-package format-all
   :straight t)
 
+(use-package dired-sidebar
+  :straight t
+  :config
+  (setq dired-sidebar-width 60
+        dired-sidebar-should-follow-file t))
+
+(use-package lin
+  :straight t
+  :config
+  (add-hook 'dired-sidebar-mode-hook 'lin-mode))
+
 (use-package tree-sitter
   :straight t
   :config
@@ -554,7 +574,6 @@
   (add-hook 'js2-mode-hook #'tree-sitter-mode)
   (add-hook 'js2-jsx-mode-hook #'tree-sitter-mode)
   (add-hook 'js-mode-hook #'tree-sitter-mode)
-  (add-hook 'emacs-lisp-mode-hook #'tree-sitter-mode)
   (global-tree-sitter-mode))
 
 (use-package tree-sitter-langs
@@ -568,15 +587,6 @@
 
 (use-package vue-mode
   :straight t)
-
-
-(use-package elixir-mode
-  :straight t)
-
-(use-package apprentice
-  :straight (:host github
-                   :repo "Sasanidas/Apprentice"
-                   :branch "master"))
 
 (use-package evil-textobj-tree-sitter
   :straight t
@@ -609,7 +619,8 @@
               (evil-textobj-tree-sitter-get-textobj ("conditional.outer" "loop.outer"))))
 
 (use-package sly
-  :straight t)
+  :straight t
+  :custom (inferior-lisp-program "sbcl"))
 
 (use-package css-mode
   :straight t)
@@ -663,6 +674,9 @@
                    (regexp . ".to\\(\\s-*\\)")
                    (group . 1)
                    (modes . '(ruby-mode)))))
+
+(use-package imenu-list
+  :straight t)
 
 (use-package robe
   :straight t
