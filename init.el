@@ -42,6 +42,7 @@
   (setq-default
    indent-tabs-mode nil
    load-prefer-newer t
+   redisplay-dont-pause t
    split-height-threshold nil
    truncate-lines t
    bidi-paragraph-direction 'left-to-right
@@ -66,10 +67,11 @@
    window-resize-pixelwise window-system)
   (setq
    ring-bell-function 'ignore
-   dired-listing-switches "-alh"
+   ;; insert-directory-program "gls"
+   ;; dired-listing-switches "-a -g -D --group-directories-first --human-readable --no-group"
    enable-recursive-minibuffers t
    confirm-kill-emacs 'y-or-n-p)
-  (set-face-attribute 'default nil :font "Fira Code" :height 130 :weight 'regular)
+  (set-face-attribute 'default nil :font "Berkeley Mono" :height 130 :weight 'regular)
   (when (eq system-type 'darwin)
   (setq mac-command-modifier 'meta
         mac-option-modifier nil
@@ -279,8 +281,10 @@
 (use-package modus-themes
   :straight t)
 
+(use-package hima-theme
+  :straight t)
 
-(load-theme 'hima t)
+(load-theme 'modus-operandi t)
 
 (use-package consult
   :straight t
@@ -288,9 +292,10 @@
   :init
   (setq register-preview-delay 0
         register-preview-function #'consult-register-format)
-  (setq xref-show-xrefs-function #'consult-xref
-        xref-show-definitions-function #'consult-xref)
   :config
+  (consult-customize
+   consult-line
+   :initial (car consult--line-history))
   (setq consult-ripgrep-args "rg --null --line-buffered --color=never --max-columns=1000 --path-separator /\
       --smart-case --no-heading --line-number --hidden --follow --glob \"!.git/*\" .")
   (consult-customize
@@ -307,6 +312,9 @@
   (setq consult-project-root-function #'projectile-project-root))
 
 (use-package consult-company
+  :straight t)
+
+(use-package devdocs
   :straight t)
 
 (use-package deadgrep
@@ -482,14 +490,8 @@
 
 (use-package eros
   :straight t
-  :bind
-  (:map sly-mode-map
-        ("C-c C-c" . sly-eval-defun)
-        ("C-c C-r" . sly-eval-region)
-        ("C-c C-b" . sly-eval-buffer))
   :config
-  (eros-mode 1)
-  )
+  (eros-mode 1))
 
 (use-package rg
   :straight t)
@@ -558,17 +560,18 @@
         js2-strict-missing-semi-warning nil
         js2-global-externs (list "window" "module" "require" "buster" "sinon" "assert" "refute" "setTimeout" "clearTimeout" "setInterval" "clearInterval" "location" "__dirname" "console" "JSON" "jQuery" "$"))
   (add-to-list 'auto-mode-alist '("\\.js$" . js2-mode))
-  (add-hook 'js2-mode-hook #'js2-imenu-extras-mode))
+  (add-hook 'js2-mode-hook #'js2-imenu-extras-mode)
+  (js2-imenu-extras-setup))
 
 (use-package js2-refactor
   :straight t
   :init   (add-hook 'js2-mode-hook 'js2-refactor-mode)
   :config (js2r-add-keybindings-with-prefix "C-c ."))
 
-(use-package xref-js2
-  :straight t
-  :config
-  (add-hook 'xref-backend-functions #'xref-js2-xref-backend nil t))
+;; (use-package xref-js2
+;;   :straight t
+;;   :config
+;;   (add-hook 'xref-backend-functions #'xref-js2-xref-backend nil t))
 
 (use-package format-all
   :straight t)
@@ -591,6 +594,7 @@
   (add-hook 'js2-jsx-mode-hook #'tree-sitter-mode)
   (add-hook 'js-mode-hook #'tree-sitter-mode)
   (global-tree-sitter-mode))
+
 
 (use-package tree-sitter-langs
   :straight t)
@@ -636,6 +640,11 @@
 
 (use-package sly
   :straight t
+  :bind
+  (:map sly-mode-map
+        ("C-c C-c" . sly-eval-defun)
+        ("C-c C-r" . sly-eval-region)
+        ("C-c C-b" . sly-eval-buffer))
   :custom (inferior-lisp-program "sbcl"))
 
 (use-package css-mode
@@ -659,6 +668,11 @@
   :config
   (add-to-list 'emmet-jsx-major-modes 'js2-mode))
 
+(use-package clojure-mode
+  :straight t)
+
+(use-package cider
+  :straight t)
 
 (use-package ruby-mode
   :straight t
@@ -667,6 +681,7 @@
   :config
   (add-hook 'ruby-mode-hook #'subword-mode)
   (setq ruby-insert-encoding-magic-comment nil
+        ruby-deep-indent-paren nil
         ruby-indent-level 2)
   (defun kill-ruby-instances ()
     (interactive)
@@ -694,19 +709,17 @@
 (use-package imenu-list
   :straight t)
 
-(use-package robe
-  :straight t
-  :hook
-  (ruby-mode . robe-mode)
-  (ruby-ts-mode . robe-mode))
+;; (use-package robe
+;;   :straight t
+;;   :hook
+;;   (ruby-mode . robe-mode)
+;;   (ruby-ts-mode . robe-mode))
 
 (use-package inf-ruby
   :straight t
   :config
   (add-hook 'compilation-filter-hook 'inf-ruby-auto-enter)
-  (add-hook 'ruby-mode-hook 'inf-ruby-minor-mode)
-  (eval-after-load 'company
-  '(push 'company-robe company-backends)))
+  (add-hook 'ruby-mode-hook 'inf-ruby-minor-mode))
 
 (use-package rubocop
   :straight t)
@@ -736,13 +749,6 @@
       (unwind-protect
           (rspec-verify)
         (setenv "FEATURE" original-feature)))))
-
-(use-package chatgpt-shell
-  :straight (:host github
-                   :repo "xenodium/chatgpt-shell"
-                   :branch "main")
-  :config
-  (setq chatgpt-shell-openai-key "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"))
 
 (use-package haml-mode
   :straight t
@@ -775,11 +781,11 @@
 
 (use-package dumb-jump
   :straight t
-  :custom
-  (dumb-jump-prefer-searcher 'rg)
-  (dumb-jump-selector 'completing-read)
   :config
-  (setq xref-show-definitions-function #'xref-show-definitions-completing-read)
+  (setq dumb-jump-prefer-searcher 'rg
+        dumb-jump-force-searcher 'rg
+        dumb-jump-selector 'completing-read
+        xref-show-definitions-function #'xref-show-definitions-completing-read)
   (add-hook 'xref-backend-functions #'dumb-jump-xref-activate))
 
 (use-package docker-compose-mode
@@ -833,8 +839,9 @@
 (if window-system
     (progn
       (add-hook 'after-init-hook 'set-ruby-no-opt)
-      (add-hook 'after-init-hook 'load-frameg)
-      (add-hook 'kill-emacs-hook 'save-frameg)))
+      ;;(add-hook 'after-init-hook 'load-frameg)
+      ;;(add-hook 'kill-emacs-hook 'save-frameg)))
+      ))
 
 
 (defun split-and-follow-horizontally ()
