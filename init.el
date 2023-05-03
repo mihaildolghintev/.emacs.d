@@ -67,11 +67,11 @@
    window-resize-pixelwise window-system)
   (setq
    ring-bell-function 'ignore
-   ;; insert-directory-program "gls"
-   ;; dired-listing-switches "-a -g -D --group-directories-first --human-readable --no-group"
+   insert-directory-program "gls"
+   dired-listing-switches "-a -g --group-directories-first --human-readable --no-group"
    enable-recursive-minibuffers t
    confirm-kill-emacs 'y-or-n-p)
-  (set-face-attribute 'default nil :font "Berkeley Mono" :height 130 :weight 'regular)
+  (set-face-attribute 'default nil :font "Berkeley Mono" :height 140 :weight 'regular)
   (when (eq system-type 'darwin)
   (setq mac-command-modifier 'meta
         mac-option-modifier nil
@@ -350,12 +350,12 @@
   :hook (prog-mode . show-paren-mode))
 
 (use-package css-mode
-  :defer t
+  :straight t
   :custom
   (css-indent-offset 2))
 
 (use-package json-mode
-  :defer t
+  :straight t
   :custom
   (js-indent-level 2))
 
@@ -791,15 +791,11 @@
 (use-package docker-compose-mode
   :straight t)
 
-(use-package docker
-  :straight t)
-
 (use-package dockerfile-mode
   :straight t)
 
 (use-package plantuml-mode
   :straight t)
-
 
 (defun load-frameg ()
   "Load ~/.emacs.frameg which should load the previous frame's geometry."
