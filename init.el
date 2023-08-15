@@ -10,17 +10,12 @@
   (load-file (expand-file-name "early-init.el" user-emacs-directory)))
 
 (load-file (expand-file-name "tree-surgeon-split-join.el" user-emacs-directory))
+(load-file (expand-file-name "services.el" user-emacs-directory))
 
 (use-package straight)
 
 (use-package org
-  :straight t
-  :config
-  (org-babel-do-load-languages
-   'org-babel-load-languages
-   '((plantuml . t)))
-  (setq org-plantuml-jar-path "~/.emacs.d/plantuml.jar")
-  )
+  :straight t)
 
 (use-package expand-region
   :straight t
@@ -33,8 +28,51 @@
   :if (eq system-type 'darwin)
   :init (ns-auto-titlebar-mode))
 
-(use-package autorevert
-  :hook (after-init . global-auto-revert-mode))
+(use-package golden-ratio
+  :straight t
+  :config
+  (golden-ratio-mode 1))
+
+(global-auto-revert-mode t)
+
+(add-hook 'message-mode-hook
+          #'auto-revert-tail-mode)
+
+(add-hook 'display-warning #'auto-revert-tail-mode)
+
+;; Revert Dired and other buffers
+(setq-default global-auto-revert-non-file-buffers t)
+
+;; As it says really
+(setq-default compilation-scroll-output t)
+
+(setq-default kill-buffer-delete-auto-save-files t)
+
+;; Set the directory where backups should go
+(setq-default backup-directory-alist
+              '(("." . "~/.cache/emacs/auto-save"))
+              backup-by-copying t
+              delete-old-versions t)
+
+;; Use a similar directory for undo-tree history
+(setq-default undo-tree-history-directory-alist
+              '(("." . "~/.cache/emacs/undo-history")))
+
+(setq-default diff-add-log-use-relative-names t)
+
+;; Smoother Scrolling for newer Emacs clients.
+(pixel-scroll-precision-mode t)
+(setq pixel-scroll-precision-large-scroll-height 30
+      pixel-scroll-precision-use-momentum nil)
+
+(use-package comment-dwim-2
+  :straight t
+  :config
+  (global-set-key (kbd "M-;") 'comment-dwim-2)
+  (define-key org-mode-map (kbd "M-;") 'org-comment-dwim-2) ;
+  (setq cd2/region-command 'cd2/comment-or-uncomment-lines
+        cd2/region-command 'cd2/comment-or-uncomment-region))
+
 
 (use-package defaults
   :defer t
@@ -45,6 +83,8 @@
    redisplay-dont-pause t
    split-height-threshold nil
    truncate-lines t
+   message-kill-buffer-on-exit t
+   delete-old-versions t
    bidi-paragraph-direction 'left-to-right
    cursor-in-non-selected-windows nil
    auto-revert-check-vc-info t
@@ -71,7 +111,7 @@
    dired-listing-switches "-a -g --group-directories-first --human-readable --no-group"
    enable-recursive-minibuffers t
    confirm-kill-emacs 'y-or-n-p)
-  (set-face-attribute 'default nil :font "Berkeley Mono" :height 140 :weight 'regular)
+  (set-face-attribute 'default nil :family "Berkeley Mono" :height 140)
   (when (eq system-type 'darwin)
   (setq mac-command-modifier 'meta
         mac-option-modifier nil
@@ -90,7 +130,16 @@
              (equal (cdr (assq 'minibuffer (frame-parameters))) 'only))
         (delete-frame))
     (keyboard-escape-quit)
-    (keyboard-quit)))
+    (keyboard-quit)
+    ))
+
+(add-hook 'before-make-frame-hook
+          #'(lambda ()
+              (add-to-list 'default-frame-alist '(left   . 0))
+              (add-to-list 'default-frame-alist '(top    . 0))
+              (add-to-list 'default-frame-alist '(height . 80))
+              (add-to-list 'default-frame-alist '(width  . 310))))
+
 
 
 (setq window-divider-default-right-width 8)
@@ -113,23 +162,13 @@
 ;; (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 (global-set-key (kbd "M-o") 'other-window)
 
-(use-package ligature
-  :straight t
+(use-package dired
+  :straight nil
   :config
-  (ligature-set-ligatures 'prog-mode '("|||>" "<|||" "<==>" "<!--" "####" "~~>" "***" "||=" "||>"
-                                       ":::" "::=" "=:=" "===" "==>" "=!=" "=>>" "=<<" "=/=" "!=="
-                                       "!!." ">=>" ">>=" ">>>" ">>-" ">->" "->>" "-->" "---" "-<<"
-                                       "<~~" "<~>" "<*>" "<||" "<|>" "<$>" "<==" "<=>" "<=<" "<->"
-                                       "<--" "<-<" "<<=" "<<-" "<<<" "<+>" "</>" "###" "#_(" "..<"
-                                       "..." "+++" "/==" "///" "_|_" "www" "&&" "^=" "~~" "~@" "~="
-                                       "~>" "~-" "**" "*>" "*/" "||" "|}" "|]" "|=" "|>" "|-" "{|"
-                                       "[|" "]#" "::" ":=" ":>" ":<" "$>" "==" "=>" "!=" "!!" ">:"
-                                       ">=" ">>" ">-" "-~" "-|" "->" "--" "-<" "<~" "<*" "<|" "<:"
-                                       "<$" "<=" "<>" "<-" "<<" "<+" "</" "#{" "#[" "#:" "#=" "#!"
-                                       "##" "#(" "#?" "#_" "%%" ".=" ".-" ".." ".?" "+>" "++" "?:"
-                                       "?=" "?." "??" ";;" "/*" "/=" "/>" "//" "__" "~~" "(*" "*)"
-                                       "\\\\" "://"))
-  (global-ligature-mode t))
+  (setq dired-dwim-target t
+        dired-recursive-copies t
+        dired-auto-revert-buffer t
+        dired-kill-when-opening-new-dired-buffer t))
 
 (use-package display-line-numbers
   :straight t
@@ -141,10 +180,29 @@
   (add-hook 'prog-mode-hook #'display-line-numbers-mode)
   (add-hook 'conf-mode-hook #'display-line-numbers-mode))
 
+  (setq-default mode-line-buffer-identification
+              (let ((orig  (car mode-line-buffer-identification)))
+                `(:eval (cons (concat ,orig (abbreviate-file-name default-directory))
+                              (cdr mode-line-buffer-identification)))))
 (use-package mood-line
   :defer t
   :straight t
   :hook (after-init . mood-line-mode))
+
+(use-package indent-guide
+  :straight t
+  :config
+  (add-hook 'ruby-mode-hook 'indent-guide-mode)
+  (add-hook 'ruby-mode-hook 'indent-guide-mode)
+  (add-hook 'ruby-ts-mode-hook 'indent-guide-mode)
+  (add-hook 'coffee-mode-hook 'indent-guide-mode)
+  (add-hook 'haml-mode-hook 'indent-guide-mode))
+
+(use-package hungry-delete
+  :straight t
+  :config
+  (setq hungry-delete-except-modes '(coffee-mode haml-mode))
+  (global-hungry-delete-mode t))
 
 (use-package startup
   :no-require
@@ -155,17 +213,12 @@
 
 (use-package files
   :preface
-  (defvar backup-dir
-    (expand-file-name ".cache/backups" user-emacs-directory)
-    "Directory to store backups.")
   (defvar auto-save-dir
     (expand-file-name ".cache/auto-save/" user-emacs-directory)
     "Directory to store auto-save files.")
   :custom
   (backup-by-copying t)
   (create-lockfiles nil)
-  (backup-directory-alist
-   `(("." . ,backup-dir)))
   (auto-save-file-name-transforms
    `((".*" ,auto-save-dir t)))
   (auto-save-no-message t)
@@ -198,7 +251,6 @@
   (add-hook 'prog-mode-hook #'company-mode)
   (add-hook 'web-mode-hook #'company-mode)
   (add-hook 'magit-mode-hook #'company-mode)
-  (add-hook 'inf-ruby-mode-hook #'company-mode)
   (push 'company-elisp company-backends)
   (setq company-format-margin-function 'company-dot-icons-margin
         company-dot-icons-format            " ● "
@@ -219,11 +271,60 @@
   (define-key company-active-map (kbd "C-n") #'company-select-next)
   (define-key company-active-map (kbd "C-p") #'company-select-previous))
 
+(use-package company-box
+  :straight t
+  :hook (company-mode . company-box-mode)
+  :config
+  (setq company-box-enable-icon nil
+        company-box-scrollbar nil
+        company-box-minimum-width 40
+        company-box-doc-enable nil))
+
+(use-package shell-maker
+  :straight (:host github :repo "xenodium/chatgpt-shell" :files ("shell-maker.el")))
+
+(use-package chatgpt-shell
+  :requires shell-maker
+  :straight (:host github :repo "xenodium/chatgpt-shell" :files ("chatgpt-shell.el"))
+  :config
+  (setq chatgpt-shell-chatgpt-streaming nil
+        chatgpt-shell-openai-key
+        (lambda ()
+          (auth-source-pick-first-password :host "api.openai.com"))))
+
+
+;; A few more useful configurations...
+(use-package emacs
+  :init
+  ;; TAB cycle if there are only few candidates
+  (setq completion-cycle-threshold 3)
+
+  ;; Emacs 28: Hide commands in M-x which do not apply to the current mode.
+  ;; Corfu commands are hidden, since they are not supposed to be used via M-x.
+  ;; (setq read-extended-command-predicate
+  ;;       #'command-completion-default-include-p)
+
+  ;; Enable indentation+completion using the TAB key.
+  ;; `completion-at-point' is often bound to M-TAB.
+  (setq tab-always-indent 'complete))
+
 (use-package select
   :no-require
   :when (display-graphic-p)
   :custom
   (x-select-request-type '(UTF8_STRING COMPOUND_TEXT TEXT STRING)))
+
+(use-package shell-maker
+  :straight (:host github :repo "xenodium/chatgpt-shell" :files ("shell-maker.el")))
+
+(use-package chatgpt-shell
+  :requires shell-maker
+  :straight (:host github :repo "xenodium/chatgpt-shell" :files ("chatgpt-shell.el"))
+  :config
+  (setq chatgpt-shell-openai-key
+      (lambda ()
+        (auth-source-pick-first-password :host "api.openai.com")))
+  )
 
 (use-package simple
   :bind (("M-z" . zap-up-to-char)
@@ -263,7 +364,7 @@
 (use-package orderless
   :straight t
   :config
-  (setq completion-styles '(orderless)
+  (setq completion-styles '(orderless basic)
         completion-category-defaults nil
         completion-category-overrides '((file (styles . (partial-completion))))))
 
@@ -284,7 +385,17 @@
 (use-package hima-theme
   :straight t)
 
-(load-theme 'modus-operandi t)
+(load-theme 'ef-maris-light t)
+
+(use-package eat
+  :straight (:type git
+                   :host codeberg
+                   :repo "akib/emacs-eat"
+                   :files ("*.el" ("term" "term/*.el") "*.texi"
+                           "*.ti" ("terminfo/e" "terminfo/e/*")
+                           ("terminfo/65" "terminfo/65/*")
+                           ("integration" "integration/*")
+                           (:exclude ".dir-locals.el" "*-tests.el"))))
 
 (use-package consult
   :straight t
@@ -293,9 +404,6 @@
   (setq register-preview-delay 0
         register-preview-function #'consult-register-format)
   :config
-  (consult-customize
-   consult-line
-   :initial (car consult--line-history))
   (setq consult-ripgrep-args "rg --null --line-buffered --color=never --max-columns=1000 --path-separator /\
       --smart-case --no-heading --line-number --hidden --follow --glob \"!.git/*\" .")
   (consult-customize
@@ -311,10 +419,31 @@
   (autoload 'projectile-project-root "projectile")
   (setq consult-project-root-function #'projectile-project-root))
 
-(use-package consult-company
+(use-package consult-flycheck
   :straight t)
 
+(use-package consult-git-log-grep
+  :straight t
+  :custom
+  (consult-git-log-grep-open-function #'magit-show-commit))
+
 (use-package devdocs
+  :straight t
+  :config
+  (global-set-key (kbd "C-h d") 'devdocs-lookup)
+
+  (add-hook 'emacs-lisp-mode-hook
+            (lambda () (setq-local devdocs-current-docs '("elisp"))))
+  (add-hook 'css-mode-hook
+            (lambda () (setq-local devdocs-current-docs '("css"))))
+  (add-hook 'coffee-mode-hook
+            (lambda () (setq-local devdocs-current-docs '("coffeescript~2"))))
+  (add-hook 'ruby-mode-hook
+            (lambda () (setq-local devdocs-current-docs '("ruby~2.7" "rails~6.0"))))
+  (add-hook 'ruby-mode-hook
+            (lambda () (setq-local devdocs-current-docs '("ruby~2.7" "rails~6.0")))))
+
+(use-package tldr
   :straight t)
 
 (use-package deadgrep
@@ -423,6 +552,14 @@
   :config
   (evil-collection-init))
 
+(use-package evil-escape
+  :after evil
+  :straight t
+  :config
+  (setq-default evil-esc-delay 0.25
+                evil-escape-key-sequence "jk")
+  (evil-escape-mode))
+
 (use-package evil-matchit
   :straight t
   :after evil
@@ -469,8 +606,20 @@
   (magit-diff-refine-ignore-whitespace t)
   (magit-diff-refine-hunk 'all)
   :config
+  ;; (remove-hook 'magit-status-sections-hook 'magit-insert-tags-header)
+  ;; (remove-hook 'magit-status-sections-hook 'magit-insert-status-headers)
+  (remove-hook 'magit-status-sections-hook 'magit-insert-unpushed-to-pushremote)
+  (remove-hook 'magit-status-sections-hook 'magit-insert-unpulled-from-pushremote)
+  (remove-hook 'magit-status-sections-hook 'magit-insert-unpulled-from-upstream)
+  (remove-hook 'magit-status-sections-hook 'magit-insert-unpushed-to-upstream-or-recent)
+  (setq magit-no-confirm '(stage-all-changes
+                           unstage-all-changes))
+  (setq auto-revert-buffer-list-filter
+      'magit-auto-revert-repository-buffer-p)
   (define-key transient-map (kbd "<escape>") 'transient-quit-one)
-  (global-set-key (kbd "C-c m") 'magit-status))
+  (global-set-key (kbd "C-c m") 'magit-status)
+  (global-set-key [(f12)] 'magit-status))
+
 
 (use-package blamer
   :straight t
@@ -493,6 +642,9 @@
   :config
   (eros-mode 1))
 
+(use-package eval-expr
+  :straight t)
+
 (use-package rg
   :straight t)
 
@@ -503,8 +655,9 @@
   (setq pulsar-pulse t)
   (setq pulsar-delay 0.055)
   (setq pulsar-iterations 10)
-  (setq pulsar-face 'pulsar-yellow)
-  (setq pulsar-highlight-face 'pulsar-yellow))
+  (setq pulsar-face 'pulsar-red)
+  (setq pulsar-highlight-face 'pulsar-red)
+  (pulsar-global-mode 1))
 
 
 (use-package helpful
@@ -533,6 +686,19 @@
   :straight t
   :init (global-flycheck-mode)
   :config
+  (defun flycheck-node_modules-executable-find (executable)
+    (or
+     (let* ((base (locate-dominating-file buffer-file-name "node_modules"))
+            (cmd  (if base (expand-file-name (concat "node_modules/.bin/" executable)  base))))
+       (if (and cmd (file-exists-p cmd))
+           cmd))
+     (flycheck-default-executable-find executable)))
+
+  (defun my-node_modules-flycheck-hook ()
+    (setq-local flycheck-executable-find #'flycheck-node_modules-executable-find))
+
+  (add-hook 'coffee-mode-hook 'my-node_modules-flycheck-hook)
+  (setq flycheck-coffeelintrc "coffeelint.json")
   (setq-default flycheck-disabled-checkers '(ruby-reek))
   (setq flycheck-check-syntax-automatically '(save mode-enabled)))
 
@@ -568,11 +734,6 @@
   :init   (add-hook 'js2-mode-hook 'js2-refactor-mode)
   :config (js2r-add-keybindings-with-prefix "C-c ."))
 
-;; (use-package xref-js2
-;;   :straight t
-;;   :config
-;;   (add-hook 'xref-backend-functions #'xref-js2-xref-backend nil t))
-
 (use-package format-all
   :straight t)
 
@@ -586,66 +747,46 @@
   :config
   (add-hook 'dired-sidebar-mode-hook 'lin-mode))
 
-(use-package tree-sitter
-  :straight t
-  :config
-  (add-hook 'ruby-mode-hook #'tree-sitter-mode)
-  (add-hook 'js2-mode-hook #'tree-sitter-mode)
-  (add-hook 'js2-jsx-mode-hook #'tree-sitter-mode)
-  (add-hook 'js-mode-hook #'tree-sitter-mode)
-  (global-tree-sitter-mode))
+;; (use-package tree-sitter
+;;   :straight t
+;;   :config
+;;   (global-tree-sitter-mode))
 
+;; (use-package tree-sitter
+;;   :t straight
+;;   :config
+;;   (global-tree-sitter-mode))
 
-(use-package tree-sitter-langs
+;; (use-package tree-sitter-langs
+;;   :straight t)
+
+;; (use-package treesit-auto
+;;   :straight t
+;;   :config
+;;   (global-treesit-auto-mode))
+
+(use-package pdf-tools
   :straight t)
 
-(use-package ts-fold
-  :straight (ts-fold :type git :host github :repo "emacs-tree-sitter/ts-fold")
+(use-package yasnippet
+  :straight t
   :config
-  (global-ts-fold-mode)
-  (global-set-key (kbd "C-c t") 'ts-fold-toggle))
+  (yas-global-mode 1))
+
+(use-package plz
+  :straight t)
 
 (use-package vue-mode
   :straight t)
 
-(use-package evil-textobj-tree-sitter
-  :straight t
-  :config
-  ;; Goto start of next function
-  (define-key evil-normal-state-map (kbd "]f") (lambda ()
-                                                 (interactive)
-                                                 (evil-textobj-tree-sitter-goto-textobj "function.outer")))
-  ;; Goto start of previous function
-  (define-key evil-normal-state-map (kbd "[f") (lambda ()
-                                                 (interactive)
-                                                 (evil-textobj-tree-sitter-goto-textobj "function.outer" t)))
-  ;; Goto end of next function
-  (define-key evil-normal-state-map (kbd "]F") (lambda ()
-                                                 (interactive)
-                                                 (evil-textobj-tree-sitter-goto-textobj "function.outer" nil t)))
-  ;; Goto end of previous function
-  (define-key evil-normal-state-map (kbd "[F") (lambda ()
-                                                 (interactive)
-                                                 (evil-textobj-tree-sitter-goto-textobj "function.outer" t t)))
-  ;; bind `function.outer`(entire function block) to `f` for use in things like `vaf`, `yaf`
-  (define-key evil-outer-text-objects-map "f"
-              (evil-textobj-tree-sitter-get-textobj "function.outer"))
-  ;; bind `function.inner`(function block without name and args) to `f` for use in things like `vif`, `yif`
-  (define-key evil-inner-text-objects-map "f"
-              (evil-textobj-tree-sitter-get-textobj "function.inner"))
-
-  ;; You can also bind multiple items and we will match the first one we can find
-  (define-key evil-outer-text-objects-map "a"
-              (evil-textobj-tree-sitter-get-textobj ("conditional.outer" "loop.outer"))))
-
 (use-package sly
   :straight t
-  :bind
-  (:map sly-mode-map
-        ("C-c C-c" . sly-eval-defun)
-        ("C-c C-r" . sly-eval-region)
-        ("C-c C-b" . sly-eval-buffer))
-  :custom (inferior-lisp-program "sbcl"))
+  :config
+  (setq inferior-lisp-program "sbcl")
+  (define-key sly-mode-map (kbd "C-c C-c") 'sly-eval-defun)
+  (define-key sly-mode-map (kbd "C-c C-r") 'sly-eval-region)
+  (define-key sly-mode-map (kbd "C-c C-b") 'sly-eval-buffer)
+  )
 
 (use-package css-mode
   :straight t)
@@ -674,18 +815,36 @@
 (use-package cider
   :straight t)
 
+(use-package go-mode
+  :straight t)
+
 (use-package ruby-mode
   :straight t
   :bind
   ((("C-c C-c" . ruby-send-region)))
   :config
   (add-hook 'ruby-mode-hook #'subword-mode)
+  ;; (add-hook 'ruby-mode-hook
+  ;; (lambda ()
+  ;;   (setq-local flycheck-command-wrapper-function
+  ;;               (lambda (command) (append '("bundle" "exec") command))))
+  ;; )
+  (add-to-list 'auto-mode-alist
+             '("\\(?:\\.rb\\|ru\\|rake\\|.pryrc\\|thor\\|jbuilder\\|gemspec\\|podspec\\|/\\(?:Gem\\|Rake\\|Cap\\|Thor\\|Vagrant\\|Guard\\|Pod\\)file\\)\\'" . ruby-mode))
   (setq ruby-insert-encoding-magic-comment nil
-        ruby-deep-indent-paren nil
-        ruby-indent-level 2)
-  (defun kill-ruby-instances ()
-    (interactive)
-    (async-shell-command "killall -9 rails ruby spring bundle; echo 'Ruby Instances Killed!'" "*Ruby Kill Output*") ))
+
+        ruby-align-to-stmt-keywords t
+        ruby-align-chained-calls nil
+        ruby-indent-level 2))
+
+(use-package ruby-tools
+  :straight t)
+
+(use-package ruby-hash-syntax
+  :after ruby-mode
+  :straight t
+  :config
+  (ruby-tools-mode))
 
 (use-package align
   :straight t
@@ -696,17 +855,67 @@
                    (group . 1)
                    (modes . '(ruby-mode))))
   (add-to-list 'align-rules-list
-                 '(ruby-hash-values
-                   (regexp . "=>\\(\\s-*\\)")
-                   (group . 1)
-                   (modes . '(ruby-mode))))
+             '(ruby-hash-values
+               (regexp . "=>\\(\\s-*\\)")
+               (repeat . t)
+               (modes . '(ruby-mode))))
   (add-to-list 'align-rules-list
                  '(ruby-hash-values
                    (regexp . ".to\\(\\s-*\\)")
                    (group . 1)
                    (modes . '(ruby-mode)))))
 
+(use-package copilot
+  :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
+  :config
+  (add-hook 'prog-mode-hook 'copilot-mode)
+  (remove-hook 'lisp-mode-hook 'copilot-mode)
+  (remove-hook 'sly-mode-hook 'copilot-mode)
+  (define-key copilot-completion-map (kbd "<tab>") 'copilot-accept-completion)
+  (define-key copilot-completion-map (kbd "TAB") 'copilot-accept-completion))
+
 (use-package imenu-list
+  :straight t)
+
+(use-package yaml-imenu
+  :straight t
+  :config
+  (yaml-imenu-enable))
+
+(use-package eshell
+  :straight t
+  :config
+  (add-hook 'eshell-mode-hook (lambda () (setenv "TERM" "xterm-256color"))))
+
+(use-package ansi-color
+  :straight t)
+
+(use-package perspective
+  :straight t
+  :bind
+  ("C-x C-b" . persp-list-buffers)         ; or use a nicer switcher, see below
+  :custom
+  (persp-mode-prefix-key (kbd "C-c M-p"))  ; pick your own prefix key here
+  :init
+  (persp-mode))
+
+(use-package vterm
+  :straight t
+  :config
+  (setq vterm-max-scrollback 200))
+
+(use-package multi-vterm
+  :straight t)
+
+(use-package so-long
+  :straight t
+  :config
+  (global-so-long-mode))
+
+(use-package zoom-window
+  :straight t)
+
+(use-package golden-ratio
   :straight t)
 
 ;; (use-package robe
@@ -718,22 +927,44 @@
 (use-package inf-ruby
   :straight t
   :config
+  (setq comint-input-ring-file-name (format "%s%s" user-emacs-directory "inf-history"))
+  (setq comint-input-ring-size 1000)
+  (setq comint-input-ignoredups t)
+  (define-key inf-ruby-mode-map (kbd "M-r") 'consult-history)
+  (evil-define-key 'normal inf-ruby-mode-map (kbd "M-r") 'consult-history)
+  (evil-define-key 'insert inf-ruby-mode-map (kbd "M-r") 'consult-history)
   (add-hook 'compilation-filter-hook 'inf-ruby-auto-enter)
-  (add-hook 'ruby-mode-hook 'inf-ruby-minor-mode))
+  (add-hook 'ruby-mode-hook 'inf-ruby-minor-mode)
+  (add-hook 'inf-ruby-mode-hook (lambda ()
+                                  (comint-read-input-ring 'silent)))
+  (add-hook 'inf-ruby-mode-hook (lambda ()
+                                  (add-hook 'kill-buffer-hook 'comint-write-input-ring nil t)))
+  )
 
 (use-package rubocop
-  :straight t)
+  :straight t
+  :config
+  (setq rubocop-prefer-system-executable t
+        rubocop-autocorrect-command "rubocop -A --format emacs"))
 
 (use-package bundler
   :straight t)
 
+(use-package asdf
+  :straight (:type git :host github :repo "tabfugnic/asdf.el" :branch "main")
+  :config
+  (asdf-enable)
+  )
+
 (use-package rspec-mode
   :straight t
+  :hook '((ruby-base-mode . rspec-mode)
+          (dired-mode . rspec-dired-mode))
   :config
   (add-hook 'after-init-hook 'inf-ruby-switch-setup)
+  (setq rspec-primary-source-dirs '("app"))
   (define-key rspec-mode-map (kbd "C-c . v") 'rspec-feature-verify-file)
   (define-key rspec-mode-map (kbd "C-c . s") 'rspec-feature-verify-single)
-  (setq compilation-scroll-output t)
   (defun rspec-feature-verify-single ()
     (interactive)
     (let ((original-feature (getenv "FEATURE")))
@@ -794,8 +1025,10 @@
 (use-package dockerfile-mode
   :straight t)
 
-(use-package plantuml-mode
-  :straight t)
+(defun eshell-new()
+  "Open a new instance of eshell."
+  (interactive)
+  (eshell 'N))
 
 (defun load-frameg ()
   "Load ~/.emacs.frameg which should load the previous frame's geometry."
@@ -830,14 +1063,19 @@
 
 (defun set-ruby-no-opt ()
   "Dont display errors in ruby console."
-  (setenv "RUBYOPT" "-W0"))
+  (setenv "RUBYOPT" "-W:no-deprecated -W:no-experimental"))
+
+(defun set-zshrc-env ()
+  "Set local env."
+  (setenv "PGHOST" "localhost"))
 
 (if window-system
     (progn
       (add-hook 'after-init-hook 'set-ruby-no-opt)
-      ;;(add-hook 'after-init-hook 'load-frameg)
-      ;;(add-hook 'kill-emacs-hook 'save-frameg)))
-      ))
+      (add-hook 'after-init-hook 'set-zshrc-env)
+      (add-hook 'after-init-hook 'load-frameg)
+      (add-hook 'kill-emacs-hook 'save-frameg)))
+
 
 
 (defun split-and-follow-horizontally ()
@@ -863,6 +1101,12 @@ Use the filename relative to the current VC root directory."
 	       (location (format "%s:%s" file-name line-number)))
     (kill-new location)
     (message location)))
+
+;; Reload/evaluate this file i.e .emacs after change
+(defun reload-dotemacs ()
+  (interactive)
+  (load-file "~/.emacs.d/init.el"))
+
 
 (global-set-key [escape] 'kos/keyboard-quit)
 

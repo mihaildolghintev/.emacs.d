@@ -1,0 +1,11 @@
+;;;; Emacs Bookmark Format Version 1;;;; -*- coding: utf-8-emacs; mode: lisp-data -*-
+;;; This format is meant to be slightly human-readable;
+;;; nevertheless, you probably don't want to edit it.
+;;; -*- End Of Bookmark File Format Version Stamp -*-
+(("org-refile-last-stored"
+ (filename . "~/.emacs.d/jira/OBG.org")
+ (front-context-string . "*** TODO [#C] Op")
+ (rear-context-string . "3\n**** Comments\n")
+ (position . 54449)
+ (last-modified 25816 47323 199405 0))
+)

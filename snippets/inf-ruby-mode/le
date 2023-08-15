@@ -1,0 +1,5 @@
+# -*- mode: snippet -*-
+# name: log_on
+# key: le
+# --
+ActiveRecord::Base.logger = Logger.new(STDOUT)

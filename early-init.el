@@ -61,7 +61,5 @@
   (load bootstrap-file nil 'nomessage))
 
 
-(desktop-save-mode t)
-
 (provide 'early-init)
 ;;; early-init.el ends here
