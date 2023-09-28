@@ -15,10 +15,18 @@
     "BUCKET SIDEKIQ"
     "SAFE SERVER"
     "SAFE SIDEKIQ"
-    "THIEF SERVER"))
+    "THIEF SERVER"
+		"ELASTICSEARCH"
+		"LOGSTASH"
+		"KIBANA"))
 
-(defun start-service (command name path &optional hook)
-  "Run service by COMMAND, NAME and PATH with a HOOK."
+(defun kill-all-processes-on-exit ()
+  "Kill all processes when quitting Emacs."
+  (dolist (proc (process-list))
+    (delete-process proc)))
+
+(defun start-service (command name path)
+  "Run service by COMMAND, NAME and PATH."
   (if (get-buffer name)
       (switch-to-buffer name)
     (setq-local default-directory path)
@@ -27,9 +35,9 @@
     (with-current-buffer "*compilation*"
       (setq-local comint-buffer-maximum-size 500)
       (add-hook 'comint-output-filter-functions #'comint-truncate-buffer)
-      (rename-buffer name))
-    (when hook
-      (add-hook 'kill-emacs-hook hook))))
+      (rename-buffer name)
+      (delete-window (get-buffer-window name)))
+    (message (format "%s started" name))))
 
 ;; ======================================
 ;;; BUCKET
@@ -38,7 +46,7 @@
 (defun start-bucket-server ()
   "Run bucket rails service."
   (interactive)
-  (start-service "bundle exec rails server" "BUCKET SERVER" "~/code/bucket" 'kill-bucket-server))
+  (start-service "bundle exec rails server" "BUCKET SERVER" "~/code/bucket"))
 
 (defun start-bucket-sidekiq ()
   "Run bucket sidekiq service."
@@ -46,8 +54,7 @@
   (start-service
    "bundle exec sidekiq -C config/sidekiq.yml"
    "BUCKET SIDEKIQ"
-   "~/code/bucket"
-   (lambda () (kill-sidekiq-instance "bucket"))))
+   "~/code/bucket"))
 
 ;; ======================================
 ;;; SAFE
@@ -59,8 +66,7 @@
   (start-service
    "bundle exec rails server"
    "SAFE SERVER"
-   "~/code/safe"
-   'kill-safe-server))
+   "~/code/safe"))
 
 (defun start-safe-sidekiq ()
   "Run bucket sidekiq service."
@@ -68,8 +74,7 @@
   (start-service
    "bundle exec sidekiq -C config/sidekiq.yml"
    "SAFE SIDEKIQ"
-   "~/code/safe"
-   (lambda () (kill-sidekiq-instance "safe"))))
+   "~/code/safe"))
 
 ;; ======================================
 ;;; THIEF
@@ -78,7 +83,7 @@
 (defun start-thief-server ()
   "Run safe service."
   (interactive)
-  (start-service "bundle exec rails server -p 6000" "THIEF SERVER" "~/code/thief" 'kill-thief-server))
+  (start-service "bundle exec rails server -p 6000" "THIEF SERVER" "~/code/thief"))
 
 (defun start-aisp ()
   "Run aisp."
@@ -89,6 +94,32 @@
   "Run aisp."
   (interactive)
   (start-service "ruby bin/pisp_queue_consumer.rb" "THIEF PISP" "~/code/thief"))
+
+;; ======================================
+;;; ELK
+;; ======================================
+(defun start-elastic ()
+	"Run elasticsearch."
+	(interactive)
+	(start-service "bin/elasticsearch" "ELASTICSEARCH" "~/code/elk_local_bucket/elasticsearch-8.7.1"))
+
+(defun start-logstash ()
+	"Run logstash."
+	(interactive)
+	(start-service "bin/logstash -f config/logstash.conf" "LOGSTASH" "~/code/elk_local_bucket/logstash-8.7.1"))
+
+(defun start-kibana ()
+	"Run kibana."
+	(interactive)
+	(start-service "bin/kibana" "KIBANA" "~/code/elk_local_bucket/kibana-8.7.1"))
+
+(defun run-elk ()
+	"Run ELK stack."
+	(interactive)
+	(start-elastic)
+	(start-logstash)
+	(start-kibana))
+
 
 ;; ======================================
 ;;; RUN ALL
@@ -104,28 +135,6 @@
   (start-thief-server)
   (start-aisp)
   (start-pisp))
-
-;; ======================================
-;; KILL
-;; ======================================
-
-(defun kill-bucket-server ()
-  "Kill bucket server."
-  (shell-command "kill -9 $(lsof -ti tcp:5000) 2> /dev/null"))
-
-(defun kill-safe-server ()
-  "Kill safe server."
-  (shell-command "kill -9 $(lsof -ti tcp:4321) 2> /dev/null"))
-
-(defun kill-thief-server ()
-  "Kill safe server."
-  (shell-command "kill -9 $(lsof -ti tcp:6000) 2> /dev/null"))
-
-(defun kill-sidekiq-instance (name)
-  "Kill bucket sidekiq with NAME."
-  (let* ((service-name (string-join (list "sidekiq .* " name)))
-         (grep-string (string-join (list "pgrep -f " service-name))))
-    (shell-command (string-join (list "kill -9 " grep-string)))))
 
 (defun services-buffers ()
   "Return only running services buffers."
@@ -159,5 +168,3 @@
   (rename-buffer "BUCKET SERVER"))
 
 (provide 'services)
-
-;;; services.el ends here

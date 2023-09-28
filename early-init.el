@@ -60,6 +60,12 @@
       (eval-print-last-sexp)))
   (load bootstrap-file nil 'nomessage))
 
+(setq-default load-prefer-newer t)
+(setq-default lexical-binding t)
+(setq lexical-binding t)
+
+(setq process-adaptive-read-buffering nil)
+(setq read-process-output-max (* 1024 1024 10))
 
 (provide 'early-init)
 ;;; early-init.el ends here
