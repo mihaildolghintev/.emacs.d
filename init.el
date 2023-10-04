@@ -82,7 +82,7 @@
         scroll-preserve-screen-position nil
         bidi-paragraph-direction 'left-to-right
         cursor-in-non-selected-windows nil
-        frame-title-format "EMACS"
+        frame-title-format '(:eval (format "EMACS   %s" (show-abbreviations)))
         auto-window-vscroll nil))
 
 (use-package window
@@ -122,11 +122,11 @@
    enable-recursive-minibuffers t
    confirm-kill-emacs 'y-or-n-p)
   (set-face-attribute 'default nil
-                      :family "Berkeley Mono"
+                      :family "Go Mono"
                       :width 'medium
                       :height 140
 											:foreground "black"
-                      :weight 'light)
+                      :weight 'regular)
 
 
   (when (eq system-type 'darwin)
@@ -175,6 +175,7 @@
 (prefer-coding-system 'utf-8)
 (setenv "LANG" "en_US.UTF-8")
 (modify-coding-system-alist 'process "*" 'utf-8)
+
 
 ;; (global-set-key (kbd "<escape>") 'keyboard-escape-quit)
 (global-set-key (kbd "M-o") 'other-window)
@@ -285,6 +286,10 @@
   :init
   (save-place-mode t))
 
+
+
+
+
 (use-package company
   :straight t
   :config
@@ -298,6 +303,7 @@
   (setq company-backends (remove 'company-xcode company-backends))
   (setq company-backends (remove 'company-cmake company-backends))
   (push 'company-elisp company-backends)
+  (push 'company-robe company-backends)
   (setq company-format-margin-function 'company-dot-icons-margin
         company-dot-icons-format            " ● "
         company-minimum-prefix-length 4
@@ -317,9 +323,6 @@
   (define-key company-active-map (kbd "C-n") #'company-select-next)
   (define-key company-active-map (kbd "C-p") #'company-select-previous))
 
-(use-package company-prescient
-  :straight t
-  :config (company-prescient-mode t))
 
 (use-package company-box
   :straight t
@@ -408,7 +411,6 @@
         completion-category-defaults nil
         completion-category-overrides '((file (styles . (partial-completion))))))
 
-
 (use-package ef-themes
   :straight (:host github
                    :repo "protesilaos/ef-themes"
@@ -487,6 +489,9 @@
   :custom
   (consult-git-log-grep-open-function #'magit-show-commit))
 
+(use-package consult-ugrep
+	:straight (:host github :repo "joachimnielandt/consult-ugrep"))
+
 (use-package multiple-cursors
   :straight t
   :config
@@ -556,6 +561,9 @@
 
 ;;   (add-hook 'show-paren-mode-hook 'pulse-momentary-highlight-one-line)
 ;;   )
+
+(use-package rails-routes
+	:straight t)
 
 (use-package go-projectile
 	:straight t
@@ -628,6 +636,10 @@
         evil-disable-insert-state-bindings t)
 
   :config
+	(define-key evil-motion-state-map "(" nil)
+	(define-key evil-motion-state-map ")" nil)
+	(define-key evil-visual-state-map "(" nil)
+	(define-key evil-replace-state-map "(" nil)
   (evil-mode t)
   (setq evil-search-module 'evil-search
         evil-undo-system 'undo-fu)
@@ -654,8 +666,9 @@
 
   (evil-define-key 'normal 'global (kbd "M-w") 'delete-window)
 
-  (evil-define-key 'visual 'global (kbd "[") 'paredit-wrap-square)
-  (evil-define-key 'visual 'global (kbd "{") 'paredit-wrap-curly)
+  (evil-define-key 'visual 'global (kbd "[") 'puni-wrap-square)
+  (evil-define-key 'visual 'global (kbd "{") 'puni-wrap-curly)
+  (evil-define-key 'visual 'global (kbd "(") 'puni-wrap-round)
 
   (evil-define-key 'visual 'global (kbd "K") 'drag-stuff-up)
   (evil-define-key 'visual 'global (kbd "J") 'drag-stuff-down)
@@ -696,6 +709,13 @@
       (("describe" "context" "subject" "specify" "it" "let") () "end"))) ;; RSpec
   (global-evil-matchit-mode 1))
 
+(use-package evil-snipe
+	:straight t
+	:config
+	(add-hook 'magit-mode-hook 'turn-off-evil-snipe-override-mode)
+	(evil-snipe-mode 1)
+	(evil-snipe-override-mode 1))
+
 (use-package undo-fu
   :straight t
   :after evil)
@@ -714,6 +734,18 @@
   :straight t
   :config
   (electric-pair-mode))
+
+(use-package aggressive-indent
+	:straight t
+  :hook ((emacs-lisp-mode ruby-mode) . aggressive-indent-mode))
+
+(use-package highlight-defined
+	:straight t
+  :commands highlight-defined-mode
+	:config
+	(add-hook 'emacs-lisp-mode-hook 'highlight-defined-mode))
+
+
 
 (use-package elisp-mode
   :custom
@@ -741,6 +773,7 @@
   :config
   (setq vc-follow-symlinks t))
 
+
 (use-package magit
   :straight t
   :custom
@@ -749,13 +782,13 @@
   :config
   (magit-auto-revert-mode)
   (remove-hook 'magit-status-sections-hook 'magit-insert-tags-header)
-  (remove-hook 'magit-status-sections-hook 'magit-insert-status-headers)
+  ;; (remove-hook 'magit-status-sections-hook 'magit-insert-status-headers)
   (remove-hook 'magit-status-sections-hook 'magit-insert-unpushed-to-pushremote)
   (remove-hook 'magit-status-sections-hook 'magit-insert-unpulled-from-pushremote)
   (remove-hook 'magit-status-sections-hook 'magit-insert-unpulled-from-upstream)
   (remove-hook 'magit-status-sections-hook 'magit-insert-unpushed-to-upstream-or-recent)
-  (setq magit-no-confirm '(stage-all-changes
-                           unstage-all-changes))
+  (setq magit-no-confirm '(stage-all-changes unstage-all-changes)
+				auto-revert-buffer-list-filter 'magit-auto-revert-repository-buffer-p)
   (define-key transient-map (kbd "<escape>") 'transient-quit-one)
   (global-set-key (kbd "C-c m") 'magit-status))
 
@@ -815,7 +848,6 @@
 		(when (and (featurep 'projectile)
 							 (projectile-project-p))
 			(flycheck-mode 1)))
-
   (defun flycheck-node_modules-executable-find (executable)
     (or
      (let* ((base (locate-dominating-file buffer-file-name "node_modules"))
@@ -896,10 +928,10 @@
 ;; (use-package tree-sitter-langs
 ;;   :straight t)
 
-(use-package treesit-auto
-  :straight t
-  :config
-  (global-treesit-auto-mode))
+;; (use-package treesit-auto
+;;   :straight t
+;;   :config
+;;   (global-treesit-auto-mode))
 
 (use-package dash-at-point
   :straight t
@@ -959,16 +991,6 @@
 
 (use-package ruby-tools
   :straight t)
-
-;; (use-package robe
-;;   :straight t
-;;   :config
-;;   (defun enable-robe-mode-for-bucket ()
-;;     "Enable Robe mode for the 'bucket' project."
-;;     (when (string= (projectile-project-name) "bucket")
-;;       (robe-mode 1)))
-
-;;   (add-hook 'ruby-mode-hook 'enable-robe-mode-for-bucket))
 
 (use-package yafolding
   :straight t)
@@ -1070,7 +1092,9 @@
         vterm-always-compile-module t))
 
 (use-package multi-vterm
-  :straight t)
+  :straight t
+	:bind (("C-c t" . multi-vterm-next)
+         ("C-c T" . multi-vterm)))
 
 (use-package so-long
   :straight t
@@ -1080,11 +1104,11 @@
 (use-package zoom-window
   :straight t)
 
-;; (use-package robe
-;;   :straight t
-;;   :hook
-;;   (ruby-mode . robe-mode)
-;;   (ruby-ts-mode . robe-mode))
+(use-package robe
+  :straight t
+  :hook
+  (ruby-mode . robe-mode)
+  (ruby-ts-mode . robe-mode))
 
 (use-package inf-ruby
   :straight t
@@ -1144,6 +1168,7 @@
   :hook ((ruby-base-mode . rspec-mode)
          (dired-mode . rspec-dired-mode))
   :config
+	(setenv "FEATURE" "true")
   (add-hook 'after-init-hook 'inf-ruby-switch-setup)
   (setq rspec-primary-source-dirs '("app"))
   (setq inf-ruby-breakpoint-pattern "pry> ")
