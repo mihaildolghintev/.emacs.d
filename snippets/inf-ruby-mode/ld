@@ -1,5 +1,0 @@
-# -*- mode: snippet -*-
-# name: log off
-# key: ld
-# --
-ActiveRecord::Base.logger = nil

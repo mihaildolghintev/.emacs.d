@@ -9,26 +9,6 @@
 
 ;;; Code:
 
-(setq
- gc-cons-threshold most-positive-fixnum
- read-process-output-max (* 1024 1024 4) ; 4mb
- inhibit-compacting-font-caches t
- message-log-max 16384
- package-enable-at-startup nil
- load-prefer-newer noninteractive)
-
-(setq-default default-frame-alist
-              (append (list
-                       '(frame-title-format . nil)
-                       '(internal-border-width . 5)
-                       '(tool-bar-lines . 0)
-                       '(vertical-scroll-bars . nil)
-                       '(horizontal-scroll-bars . nil)))
-              initial-frame-alist default-frame-alist
-              frame-inhibit-implied-resize t
-              fringe-indicator-alist (assq-delete-all 'truncation fringe-indicator-alist))
-
-
 
 (when (featurep 'native-compile)
   (defvar inhibit-automatic-native-compilation)
@@ -65,7 +45,34 @@
 (setq lexical-binding t)
 
 (setq process-adaptive-read-buffering nil)
-(setq read-process-output-max (* 1024 1024 10))
+
+;; (setq-default default-frame-alist
+;;               (append (list
+;;                        '(frame-title-format . nil)
+;;                        '(internal-border-width . 5)
+;;                        '(tool-bar-lines . 0)
+;;                        '(vertical-scroll-bars . nil)
+;;                        '(horizontal-scroll-bars . nil)))
+;;               initial-frame-alist default-frame-alist
+;;               frame-inhibit-implied-resize t
+;;               fringe-indicator-alist (assq-delete-all 'truncation fringe-indicator-alist))
+
+(use-package frame
+  :straight nil
+  :config
+  (setq-default default-frame-alist
+                (append (list
+                         '(frame-title-format . nil)
+                         '(internal-border-width . 2)
+                         '(tool-bar-lines . 0)
+                         '(vertical-scroll-bars . nil)
+                         '(horizontal-scroll-bars . nil))))
+  ;; Resize pixel-wise to avoid gaps
+  (setq-default window-resize-pixelwise t)
+  (setq-default frame-resize-pixelwise t)
+
+  ;; Don't show icon in frame
+  (setq-default ns-use-proxy-icon nil))
 
 (provide 'early-init)
 ;;; early-init.el ends here

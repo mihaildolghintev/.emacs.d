@@ -29,3 +29,9 @@ inf-history
 orgs
 todos.org
 undo-fu-session
+.lsp-session*
+jira
+org-roam.db
+recentf
+logview-cache*
+.org-id-locations
