@@ -20,12 +20,8 @@
   :config
 	(setq org-directory "~/Documents/org-roam/")
   (setq org-babel-load-languages '((emacs-lisp . t)
-                                  (ruby . t))))
-
-(use-package org-modern
-	:straight t
-	:config
-	(global-org-modern-mode 1))
+                                  (ruby . t)
+																	(sql . t))))
 
 (use-package blamer
   :straight t
@@ -156,11 +152,9 @@
    enable-recursive-minibuffers t
    confirm-kill-emacs 'y-or-n-p)
   (set-face-attribute 'default nil
-                      :family "Iosevka"
-                      :width 'regular
-                      :height 150
+                      :family "Monolisa"
+                      :height 130
                       :weight 'regular)
-
 
   (when (eq system-type 'darwin)
   (setq mac-command-modifier 'meta
@@ -189,6 +183,12 @@
               (add-to-list 'default-frame-alist '(top    . 0))
               (add-to-list 'default-frame-alist '(height . 80))
               (add-to-list 'default-frame-alist '(width  . 310))))
+
+(add-hook 'after-init-hook
+          (lambda ()
+            (require 'server)
+            (unless (server-running-p)
+              (server-start))))
 
 
 (setq window-divider-default-right-width 8)
@@ -243,7 +243,6 @@
 	:init
 	(setq display-time-default-load-average nil
 				display-time-format "%I:%M %p %e %b"))
-
 
 (use-package indent-guide
   :straight t
@@ -429,7 +428,6 @@
                  args)))
   (vertico-mode))
 
-
 (use-package marginalia
   :straight t
   :config
@@ -450,6 +448,7 @@
 	(setq ef-themes-common-palette-overrides
 				'((border-mode-line-active black))))
 
+
 (use-package modus-themes
   :straight t
   :config
@@ -460,7 +459,6 @@
         (fg-mode-line-active fg-main)
         (border-mode-line-active yellow-intense))))
 
-;; (load-theme 'modus-operandi t)
 (load-theme 'modus-operandi-tinted t)
 
 
@@ -557,9 +555,6 @@
   (projectile-mode 1)
   :config
   (setq projectile-project-search-path '("~/code/work")
-        projectile-indexing-method 'alien
-        projectile-ignored-projects
-        `("/" "~/" ,(expand-file-name "~/"))
         projectile-project-root-files-functions '(projectile-root-local
                                                   projectile-root-bottom-up)))
 
@@ -590,7 +585,11 @@
   :mode
   ("README\\.md\\'" . gfm-mode)
   ("\\.md\\'" . markdown-mode)
-  ("\\.markdown\\'" . markdown-mode))
+  ("\\.markdown\\'" . markdown-mode)
+	:config
+	(setq markdown-make-gfm-checkboxes-buttons t
+				markdown-gfm-uppercase-checkbox t
+        markdown-fontify-code-blocks-natively t))
 
 (use-package json-mode
   :straight t
@@ -608,11 +607,28 @@
 
 (use-package elfeed
   :straight t
+	:bind (:map elfeed-search-mode-map
+							("B" . md/elfeed-search-browse-background-url))
   :config
+	(defun md/elfeed-search-browse-background-url ()
+    "Open current `elfeed' entry (or region entries) in browser without losing focus."
+    (interactive)
+    (let ((entries (elfeed-search-selected)))
+      (mapc (lambda (entry)
+              (cl-assert (memq system-type '(darwin)) t "open command is macOS only")
+              (start-process (concat "open " (elfeed-entry-link entry))
+                             nil "open" "--background" (elfeed-entry-link entry))
+              (elfeed-untag entry 'unread)
+              (elfeed-search-update-entry entry))
+            entries)
+      (unless (or elfeed-search-remain-on-entry (use-region-p))
+        (forward-line))))
   (setq elfeed-feeds
       '("http://nullprogram.com/feed/"
         "https://planet.emacslife.com/atom.xml"
+				"https://allaboutcoding.ghinda.com/rss.xml"
         "https://melpa.org/updates.rss")))
+
 
 (use-package evil
   :straight t
@@ -686,12 +702,12 @@
   (evilmi-load-plugin-rules '(ruby-base-mode ruby-ts-mode) '(simple ruby))
 
   ;; Improve the match tags for ruby
-  (defvar evilmi-ruby-match-tags
-    '((("unless" "if") ("elsif" "else") "end")
-      ("begin" ("rescue" "ensure") "end")
-      ("case" ("when" "else") "end")
-      (("class" "def" "while" "do" "module" "for" "until") () "end")
-      (("describe" "context" "subject" "specify" "it" "let") () "end"))) ;; RSpec
+  ;; (defvar evilmi-ruby-match-tags
+  ;;   '((("unless" "if") ("elsif" "else") "end")
+  ;;     ("begin" ("rescue" "ensure") "end")
+  ;;     ("case" ("when" "else") "end")
+  ;;     (("class" "def" "while" "do" "module" "for" "until") () "end")
+  ;;     (("describe" "context" "subject" "specify" "it" "let") () "end"))) ;; RSpec
   (global-evil-matchit-mode 1))
 
 (use-package evil-snipe
@@ -757,15 +773,11 @@
   (define-key transient-map (kbd "<escape>") 'transient-quit-one)
   (global-set-key (kbd "C-c m") 'magit-status))
 
-;; (use-package magit-delta
-;;   :straight t
-;;   :hook (magit-mode . magit-delta-mode))
-
-(use-package clojure-mode
-	:straight t)
-
-(use-package cider
-	:straight t)
+(use-package lab
+  :straight (:host github :repo "isamert/lab.el")
+	:config
+	(setq lab-host "https://git.saltedge.com"
+				lab-token "glpat-HBJyWjUifCZDxnxBfzoG"))
 
 (use-package elisp-def
 	:straight t
@@ -805,6 +817,11 @@
          ([remap describe-key]      . helpful-key)
          ([remap describe-symbol]   . helpful-symbol)))
 
+(use-package elisp-demos
+	:straight t
+	:config
+	(advice-add 'helpful-update :after #'elisp-demos-advice-helpful-update))
+
 (use-package crux
   :straight t
   :defer t)
@@ -816,38 +833,6 @@
   (setq which-key-max-display-columns 2
         which-key-add-column-padding 10
         which-key-max-description-length 120))
-
-
-
-;; (use-package flymake
-;; 	:hook ((coffee-mode . flymake-mode)
-;; 				 (ruby-ts-mode . flymake-mode)
-;; 				 (ruby-mode . flymake-mode))
-;; 	:config
-;; 	(flymake-mode-on)
-;; 	)
-
-;; (use-package flymake
-;;   :straight nil
-;;   :hook (prog-mode . flymake-mode)
-;;   :custom
-;;   (flymake-fringe-indicator-position 'left-fringe)
-;;   (flymake-suppress-zero-counters t)
-;;   (flymake-start-on-flymake-mode t)
-;;   (flymake-no-changes-timeout nil)
-;;   (flymake-start-on-save-buffer t)
-;;   (flymake-proc-compilation-prevents-syntax-check t)
-;;   (flymake-wrap-around nil)
-;;   ;; Customize mode-line
-;;   (flymake-mode-line-counter-format '("" flymake-mode-line-error-counter flymake-mode-line-warning-counter flymake-mode-line-note-counter ""))
-;;   (flymake-mode-line-format '(" " flymake-mode-line-exception flymake-mode-line-counters)))
-
-;; (use-package flymake-collection
-;; 	:straight t
-;;   :hook (after-init . flymake-collection-hook-setup))
-
-;; (use-package consult-flymake
-;;   :straight nil)
 
 (use-package flycheck
   :straight t
@@ -883,13 +868,11 @@
   (setq flycheck-coffeelintrc "coffeelint.json")
   (setq flycheck-check-syntax-automatically '(save)))
 
-(use-package flyspell
-	:straight t
-	:config
-	(flyspell-prog-mode))
-
-(use-package consult-flyspell
-	:straight t)
+(use-package uniquify
+	:straight nil
+  :init
+  (setq uniquify-buffer-name-style 'forward
+        uniquify-min-dir-content 2))
 
 (use-package direnv
 	:straight t
@@ -902,8 +885,12 @@
 
 (use-package js2-mode
   :straight t
-  :mode (("\\.js\\'" . js2-mode))
-  :interpreter ("node" . js2-mode)
+  :mode (("\\.js\\'" . js2-mode)
+				 ("\\.jsx\\'" . js2-mode))
+  :interpreter (("node" . js2-mode)
+								("node" . js2-jsx-mode))
+	:hook ((js2-mode . js2-imenu-extras-mode)
+         (js2-mode . js2-highlight-unused-variables-mode))
   :config
   (setq js2-use-font-lock-faces t
         js2-mode-must-byte-compile nil
@@ -941,13 +928,13 @@
   :config
   (add-hook 'dired-sidebar-mode-hook 'lin-mode))
 
-;; (use-package tree-sitter
-;;   :straight t
-;;   :config
-;;   (global-tree-sitter-mode))
+(use-package tree-sitter
+  :straight t
+  :config
+  (global-tree-sitter-mode))
 
-;; (use-package tree-sitter-langs
-;;   :straight t)
+(use-package tree-sitter-langs
+  :straight t)
 
 ;; (use-package treesit-auto
 ;;   :straight t
@@ -962,16 +949,18 @@
   :config
   (reverse-im-activate "russian-computer"))
 
-(use-package vue-mode
-  :straight t)
-
 (use-package sly
   :straight t
+	:bind ((:map lisp-mode-map
+               ("C-c C-e" . sly-overlay-eval-defun)
+               ("C-c C-c" . sly-eval-buffer)
+               ("C-x C-r" . sly-eval-region)))
   :config
-  (setq inferior-lisp-program "sbcl")
-  (define-key sly-mode-map (kbd "C-c C-c") 'sly-eval-defun)
-  (define-key sly-mode-map (kbd "C-c C-r") 'sly-eval-region)
-  (define-key sly-mode-map (kbd "C-c C-b") 'sly-eval-buffer))
+  (setq inferior-lisp-program "sbcl"))
+
+(use-package sly-overlay
+	:after sly
+	:straight t)
 
 (use-package geiser
 	:straight t
@@ -992,14 +981,18 @@
 (use-package geiser-mit
 	:straight t)
 
-(use-package css-mode
-  :straight t)
-
 ;; (use-package scss-mode
 ;;   :straight t)
 
+(when (executable-find "prettier")
+  (use-package prettier
+    :diminish
+    :hook ((js-mode js2-mode css-mode sgml-mode web-mode) . prettier-mode)
+    :init (setq prettier-pre-warm 'none)))
+
 (use-package typescript-mode
-  :straight t)
+	:straight t
+  :mode ("\\.ts[x]\\'" . typescript-mode))
 
 (use-package coffee-mode
   :straight t
@@ -1022,12 +1015,6 @@
   :straight t
 	:hook ((prog-mode . yafolding-mode)))
 
-;; (use-package robe
-;; 	:straight t
-;; 	:config
-;; 	(global-robe-mode))
-
-
 (use-package ruby-end
 	:straight t
 	:config
@@ -1037,6 +1024,21 @@
 	:straight t
 	:config
 	(setq rails-i18n-use-double-quotes t))
+
+(use-package go-mode
+	:straight t)
+
+(use-package lsp-mode
+	:straight t
+  :hook ((vue-mode . lsp)
+				 (go-mode . lsp))
+	:config
+	(setq lsp-headerline-breadcrumb-enable nil
+				lsp-modeline-code-actions-enable nil
+				lsp-modeline-diagnostics-enable nil))
+
+(use-package lsp-ui
+	:straight t)
 
 (use-package ruby-mode
   :straight t
@@ -1077,8 +1079,8 @@
         ruby-indent-level 2))
 
 (use-package copilot
-  :straight (:host github :repo "zerolfx/copilot.el" :files ("dist" "*.el"))
-  :hook ((ruby-mode ruby-ts-mode js-mode coffee-mode yaml-mode) . copilot-mode)
+  :straight (:host github :repo "copilot-emacs/copilot.el" :files ("dist" "*.el"))
+  :hook ((ruby-mode ruby-ts-mode js-mode coffee-mode) . copilot-mode)
   :config
 	(setq copilot-node-executable "~/.asdf/installs/nodejs/18.19.0/bin/node")
   (define-key copilot-completion-map (kbd "<tab>") 'copilot-accept-completion)
@@ -1104,7 +1106,6 @@
 
 (use-package ansi-color
   :straight t)
-
 
 (use-package so-long
   :straight t
@@ -1134,9 +1135,7 @@
   (add-hook 'inf-ruby-mode-hook (lambda ()
                                   (comint-read-input-ring 'silent)))
   (add-hook 'inf-ruby-mode-hook (lambda ()
-                                  (add-hook 'kill-buffer-hook 'comint-write-input-ring nil t)))
-  )
-
+                                  (add-hook 'kill-buffer-hook 'comint-write-input-ring nil t))))
 
 (use-package rubocop
   :straight t
@@ -1183,22 +1182,6 @@
   ;; (setq inf-ruby-breakpoint-pattern "pry> ")
   (define-key rspec-mode-map (kbd "C-c . v") 'rspec-feature-verify-file)
   (define-key rspec-mode-map (kbd "C-c . s") 'rspec-feature-verify-single)
-  (defun rspec-feature-verify-single ()
-    (interactive)
-    (let ((original-feature (getenv "FEATURE")))
-      (setenv "FEATURE" "true")
-      (unwind-protect
-          (rspec-verify-single)
-        (setenv "FEATURE" original-feature))))
-
-  (defun rspec-feature-verify-file ()
-    (interactive)
-    (let ((original-feature (getenv "FEATURE")))
-      (setenv "FEATURE" "true")
-      (unwind-protect
-          (rspec-verify)
-        (setenv "FEATURE" original-feature))))
-
   (defun rspec-coverage-verify-file ()
     (interactive)
     (let ((original-feature (getenv "COVERAGE")))
@@ -1244,6 +1227,32 @@
   (add-to-list 'auto-mode-alist '("\\.vue\\'" . web-mode))
   (add-to-list 'auto-mode-alist '("\\.hbs\\'" . web-mode)))
 
+(setq my/web-mode-lsp-extensions
+      `(,(rx ".svelte" eos)
+	,(rx ".vue" eos)))
+
+(defun my/web-mode-lsp ()
+  (when (seq-some
+	 (lambda (regex) (string-match-p regex (buffer-name)))
+	 my/web-mode-lsp-extensions)
+    (lsp-deferred)))
+
+(add-hook 'web-mode-hook #'my/web-mode-lsp)
+
+(defun my/web-mode-vue-setup (&rest _)
+  (when (string-match-p (rx ".vue" eos) (buffer-name))
+    (setq-local web-mode-script-padding 0)
+    (setq-local web-mode-style-padding 0)
+    (setq-local create-lockfiles nil)
+    (setq-local web-mode-enable-auto-pairing nil)))
+
+(add-hook 'web-mode-hook 'my/web-mode-vue-setup)
+(add-hook 'editorconfig-after-apply-functions 'my/web-mode-vue-setup)
+
+(use-package add-node-modules-path
+	:straight t
+  :hook ((web-mode js-mode js2-mode) . add-node-modules-path))
+
 (use-package dumb-jump
   :straight t
   :config
@@ -1260,6 +1269,9 @@
 (use-package dockerfile-mode
   :straight t)
 
+(use-package docker
+	:straight t)
+
 (use-package hledger-mode
 	:straight t
 	:config
@@ -1269,9 +1281,16 @@
 	(add-to-list 'auto-mode-alist '("\\.journal\\'" . hledger-mode))
 	(add-to-list 'company-backends 'hledger-company))
 
+(use-package ledger-mode
+	:straight t
+	:config
+	(define-key ledger-mode-map (kbd "C-c j") 'ledger-run-command)
+	(setq ledger-master-file "~/Documents/budget/main.ledger")
+	(add-to-list 'auto-mode-alist '("\\.ledger\\'" . ledger-mode)))
+
 (use-package flycheck-hledger
 	:straight t
-	:after flycheck)
+  :after (flycheck ledger-mode))
 
 (defun eshell-new()
   "Open a new instance of eshell."
@@ -1344,11 +1363,6 @@ Use the filename relative to the current VC root directory."
     (kill-new location)
     (message location)))
 
-;; Reload/evaluate this file i.e .emacs after change
-(defun reload-dotemacs ()
-  (interactive)
-  (load-file "~/.emacs.d/init.el"))
-
 (defun update-to-load-path (folder)
   "Update FOLDER and its subdirectories to `load-path'."
   (let ((base folder))
@@ -1366,6 +1380,18 @@ Use the filename relative to the current VC root directory."
       "Kill all other buffers."
       (interactive)
       (mapc 'kill-buffer (delq (current-buffer) (buffer-list))))
+
+ (defun dired-get-size ()
+  (interactive)
+  (let ((files (dired-get-marked-files)))
+    (with-temp-buffer
+      (apply 'call-process "/usr/bin/du" nil t nil "-sch" files)
+      (message "Size of all marked files: %s"
+               (progn
+                 (re-search-backward "\\(^[0-9.,]+[A-Za-z]+\\).*total$")
+                  (match-string 1))))))
+
+ (define-key dired-mode-map (kbd "?") 'dired-get-size)
 
 (update-to-load-path (expand-file-name "lisp" user-emacs-directory))
 
