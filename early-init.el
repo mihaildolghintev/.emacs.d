@@ -10,12 +10,6 @@
 ;;; Code:
 
 
-(when (featurep 'native-compile)
-  (defvar inhibit-automatic-native-compilation)
-  (setq inhibit-automatic-native-compilation nil)
-  (defvar native-comp-async-report-warnings-errors)
-  (setq native-comp-async-report-warnings-errors 'silent))
-
 ;;; Straight
 
 (defvar straight-process-buffer)
@@ -45,6 +39,9 @@
 (setq lexical-binding t)
 
 (setq process-adaptive-read-buffering nil)
+(setq native-comp-async-report-warnings-errors nil)
+(customize-set-value 'gc-cons-threshold most-positive-fixnum)
+(setq-default read-process-output-max (* 1024 1024))
 
 ;; (setq-default default-frame-alist
 ;;               (append (list
@@ -56,6 +53,12 @@
 ;;               initial-frame-alist default-frame-alist
 ;;               frame-inhibit-implied-resize t
 ;;               fringe-indicator-alist (assq-delete-all 'truncation fringe-indicator-alist))
+
+(setq byte-compile-warnings nil)
+
+(setq frame-inhibit-implied-resize t)
+
+
 
 (use-package frame
   :straight nil
@@ -70,6 +73,9 @@
   ;; Resize pixel-wise to avoid gaps
   (setq-default window-resize-pixelwise t)
   (setq-default frame-resize-pixelwise t)
+
+	(fringe-mode '(8 . 0))
+	(setq fringes-outside-margins nil)
 
   ;; Don't show icon in frame
   (setq-default ns-use-proxy-icon nil))

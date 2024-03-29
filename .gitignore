@@ -35,3 +35,7 @@ org-roam.db
 recentf
 logview-cache*
 .org-id-locations
+elpaca
+chatgpt/
+rake.cache
+url/
