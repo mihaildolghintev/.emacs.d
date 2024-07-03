@@ -16,9 +16,9 @@
 
 (defun create-scratch-buffer ()
 	(interactive)
-	(let* ((modes '("ruby" "json" "org" "markdown" "emacs-lisp"))
+	(let* ((modes '("ruby" "json" "org" "markdown" "emacs-lisp" "sql" "fundamental"))
 				 (mode (consult--read modes))
-				 (buffer (generate-new-buffer (format "*scratch %s #%i*" mode (extract-max-number (current-buffers mode))))))
+				  (buffer (generate-new-buffer (format "*scratch %s-%i*" mode (random)))))
 		(switch-to-buffer buffer)
 		(eval (car (read-from-string (format "(%s-mode)" mode))))))
 
